@@ -1,0 +1,19 @@
+name = "first-attempt"
+stan_file = ""  # todo: add stan file
+prepared_data_dir = "main"
+stan_input_function = "get_stan_input"
+modes = ["prior", "posterior"]
+
+[dims] # todo: add dims
+
+[stanc_options]
+warn-pedantic = true
+
+[sample_kwargs]
+save_warmup = false
+iter_warmup = 1000
+iter_sampling = 1000
+
+[mode_options.kfold]
+n_folds = 5
+chains = 1
