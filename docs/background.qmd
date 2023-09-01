@@ -1,0 +1,19 @@
+---
+title: "13C MFA: background"
+resource_path: ["../"]
+author: "Teddy Groves and Te Chen"
+bibliography: bibliography.bib
+reference-location: margin
+format:
+  html: default
+  pdf: default
+---
+
+This document contains summaries of relevant papers relating to 13C metabolic flux analysis.
+
+# Elementary Metabolite Units (EMU): a novel framework for modeling isotopic distributions
+
+Reference: @antoniewiczElementaryMetaboliteUnits2007a
+
+This paper introduces the EMU method for solving the forward MFA problem (i.e.
+finding the mass isotopomer distributions for a given set of fluxes).
