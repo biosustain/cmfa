@@ -17,3 +17,11 @@ Reference: @antoniewiczElementaryMetaboliteUnits2007a
 
 This paper introduces the EMU method for solving the forward MFA problem (i.e.
 finding the mass isotopomer distributions for a given set of fluxes).
+
+# Data
+
+[This
+notebook](https://github.com/biosustain/incawrapper/blob/main/docs/examples/Published_data_examples_C_necator.ipynb)
+has data and processing by Viktor and Matthias. [The
+repository](https://github.com/biosustain/incawrapper/) also has a lot of other
+datasets and useful information and code.
