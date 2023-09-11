@@ -62,12 +62,12 @@ def write_prepared_data(prepped: PreparedData, directory):
 
 
 def prepare_data_main(
-    measuremements: DataFrame[MeasurementsDF],
+    measurements: DataFrame[MeasurementsDF],
 ) -> PreparedData:
     return PreparedData(
-        name="",
+        name="main",
         coords=util.CoordDict({"": [""]}),
-        measurements=DataFrame[MeasurementsDF](),
+        measurements=DataFrame[MeasurementsDF](measurements),
     )
 
 

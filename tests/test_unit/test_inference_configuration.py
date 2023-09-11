@@ -22,9 +22,9 @@ def test_model_configuration_good_modes():
     """Check that an inference configuration with good modes initialises."""
     _ = InferenceConfiguration(
         name="my_mc",
-        stan_file="multilevel-linear-regression.stan",
+        stan_file="model.stan",
         prepared_data_dir=os.path.join("hi", "hello", "hey"),
-        stan_input_function="get_stan_input_interaction",
+        stan_input_function="get_stan_input",
         sample_kwargs=SAMPLE_KWARGS,
         mode_options={"kfold": {"n_folds": 10}},
         modes=MODES_GOOD,
@@ -38,9 +38,9 @@ def test_model_configuration_bad_modes():
     """Check that an inference configuration with bad modes fails."""
     _ = InferenceConfiguration(
         name="my_mc",
-        stan_file="multilevel-linear-regression.stan",
+        stan_file="model.stan",
         prepared_data_dir=os.path.join("hi", "hello", "hey"),
-        stan_input_function="get_stan_input_interaction",
+        stan_input_function="get_stan_input",
         sample_kwargs=SAMPLE_KWARGS,
         modes=MODES_BAD,
         mode_options={"kfold": {"n_folds": 10}},
@@ -54,9 +54,9 @@ def test_model_configuration_no_k():
     """Check that an inference configuration with no kfold options fails."""
     _ = InferenceConfiguration(
         name="my_mc",
-        stan_file="multilevel-linear-regression.stan",
+        stan_file="model.stan",
         prepared_data_dir=os.path.join("hi", "hello", "hey"),
-        stan_input_function="get_stan_input_interaction",
+        stan_input_function="get_stan_input",
         sample_kwargs=SAMPLE_KWARGS,
         mode_options={"kfold": None},  # This is the bad mode!
         modes=MODES_GOOD,  # it would be ok if 'kfold' weren't in here.
@@ -72,7 +72,7 @@ def test_model_configuration_no_stan_file():
         name="my_mc",
         stan_file="XXXXXXXXXXXXXXXXXXXX",
         prepared_data_dir=os.path.join("hi", "hello", "hey"),
-        stan_input_function="get_stan_input_interaction",
+        stan_input_function="get_stan_input",
         sample_kwargs=SAMPLE_KWARGS,
         modes=MODES_GOOD,
         mode_options={"kfold": {"n_folds": 10}},
@@ -86,7 +86,7 @@ def test_model_configuration_no_stan_input_function():
     """Check that absent Stan input function causes failure."""
     _ = InferenceConfiguration(
         name="my_mc",
-        stan_file="multilevel-linear-regression.stan",
+        stan_file="model.stan",
         prepared_data_dir=os.path.join("hi", "hello", "hey"),
         stan_input_function="XXXXXXXXXXXXXXXXXX",
         sample_kwargs=SAMPLE_KWARGS,

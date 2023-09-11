@@ -6,17 +6,13 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
-from cmfa.data_preparation import (
-    prepare_data_interaction,
-    prepare_data_no_interaction,
-)
+from cmfa.data_preparation import prepare_data_main
 from cmfa.util import CoordDict
 
 EXAMPLE_RAW_MEASUREMENTS = pd.DataFrame(
     {
         "X1": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
         "X2": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
-        "yButIThoughtIdAddSomeLetters": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
     }
 )
 
@@ -26,38 +22,16 @@ EXAMPLE_RAW_MEASUREMENTS = pd.DataFrame(
     "expected_coords",
     [
         (
-            prepare_data_interaction,
-            "interaction",
+            prepare_data_main,
+            "main",
             EXAMPLE_RAW_MEASUREMENTS,
             pd.DataFrame(
                 {
-                    "x1": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
-                    "x2": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
-                    "y": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
-                    "x1:x2": [1, 4, 9, 1, 4, 9, 1, 4, 9, 1, 4],
+                    "X1": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
+                    "X2": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
                 }
-            ).apply(lambda s: s.astype(float)),
-            {
-                "covariate": ["x1", "x2", "x1:x2"],
-                "observation": [str(i) for i in range(11)],
-            },
-        ),
-        (
-            prepare_data_no_interaction,
-            "no_interaction",
-            EXAMPLE_RAW_MEASUREMENTS,
-            pd.DataFrame(
-                {
-                    "x1": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
-                    "x2": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
-                    "y": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2],
-                    "x1:x2": [1, 4, 9, 1, 4, 9, 1, 4, 9, 1, 4],
-                }
-            ).apply(lambda s: s.astype(float)),
-            {
-                "covariate": ["x1", "x2"],
-                "observation": [str(i) for i in range(11)],
-            },
+            ),
+            {"": [""]},
         ),
     ],
 )
