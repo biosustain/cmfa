@@ -18,10 +18,56 @@ Reference: @antoniewiczElementaryMetaboliteUnits2007a
 This paper introduces the EMU method for solving the forward MFA problem (i.e.
 finding the mass isotopomer distributions for a given set of fluxes).
 
-# Data
+# Viktor and Matthias's incawrapper package
 
 [This
 notebook](https://github.com/biosustain/incawrapper/blob/main/docs/examples/Published_data_examples_C_necator.ipynb)
-has data and processing by Viktor and Matthias. [The
+has data and processing for a typical MFA problem. [The
 repository](https://github.com/biosustain/incawrapper/) also has a lot of other
 datasets and useful information and code.
+
+# Understanding metabolism with flux analysis: From theory to application
+
+Reference: @daiUnderstandingMetabolismFlux2017
+
+This is a review paper covering metabolic flux analysis in general.
+
+# Input data for a 13C MFA experiment
+
+Input data consists of:
+
+* A description of the metabolic network, including:
+
+  * Stoichiometric coefficient of each compound in each reaction
+
+  * Atom transitions of each reaction, i.e. given the arrangement of labellable
+  atoms on one side of the reaction, what is the arrangement on the other side.
+
+* Description of the labelled compounds added to the experiments, or "tracers".
+i.e. a list including the following information for each tracer:
+
+  * compound id
+
+  * positions of labelled atoms
+
+  * purity, i.e. for each position, the proportion of atoms in that position
+  that were labelled
+
+* Specification of which tracers were used in which experiments, and with what
+enrichment level (i.e. what proportion of each tracer's compound was the
+tracer.)
+
+* Direct flux measurements, i.e. ones that did not require labelling. For each measurement:
+
+  * reaction id
+  * experiment id
+  * measured flux
+  * measurement error
+
+* Mass isotopomer distribution measurements. For each measurement:
+
+  * experiment id
+  * compound id
+  * fragment id
+  * mass isotopomer id (i.e. 0, 1, 2, ...)
+  * measured intensity (i.e. proportion of total fragment intensity)

@@ -72,3 +72,8 @@ disable = "C0330, C0326"
 
 [tool.pylint.format]
 max-line-length = "80"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
