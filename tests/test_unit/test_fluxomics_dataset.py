@@ -2,6 +2,10 @@
 
 from cmfa.fluxomics_data.fluxomics_dataset import FluxomicsDataset
 
+from .test_measurement import (
+    EXAMPLE_FLUX_MEASUREMENT_INPUT,
+    EXAMPLE_MID_MEASUREMENT_INPUT,
+)
 from .test_reaction_network import EXAMPLE_NETWORK_INPUT
 from .test_tracer import EXAMPLE_TRACER_EXPERIMENT_INPUT, EXAMPLE_TRACER_INPUT
 
@@ -11,8 +15,8 @@ EXAMPLE_FLUXOMICS_DATASET_INPUT = {
     "reaction_network": EXAMPLE_NETWORK_INPUT,
     "tracers": [EXAMPLE_TRACER_INPUT],
     "tracer_experiments": [EXAMPLE_TRACER_EXPERIMENT_INPUT],
-    "flux_measurements": [],
-    "mid_measurements": [],
+    "flux_measurements": [EXAMPLE_FLUX_MEASUREMENT_INPUT],
+    "mid_measurements": [EXAMPLE_MID_MEASUREMENT_INPUT],
 }
 
 
