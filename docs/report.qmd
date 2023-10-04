@@ -19,6 +19,7 @@ or add a new one, you can do so by editing the `format` field of the
 document's yaml front matter. For example if you want to create a version that
 your collaborators can open in Microsoft Word:
 
+
 ```{.yaml}
 ---
 format:
