@@ -68,7 +68,7 @@ ensure_newline_before_comments = true
 line_length = 80
 
 [tool.pylint.messages_control]
-disable = "C0330, C0326"
+disable = "C0330, C0326, C0111"
 
 [tool.pylint.format]
 max-line-length = "80"
@@ -77,3 +77,25 @@ max-line-length = "80"
 addopts = [
     "--import-mode=importlib",
 ]
+
+[tool.ruff]
+# Set the path to your project's source files
+include = ["cmfa/**/*.py", "tests/**/*.py"]
+
+# Optionally, you can also configure ruff to exclude certain files or directories
+exclude = [
+    "build/**",
+    "dist/**",
+    "*.egg-info/**",
+    "**/__pycache__/**",
+    ".venv/**",
+]
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "D",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
