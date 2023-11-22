@@ -3,7 +3,13 @@
 from operator import gt, lt
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, computed_field, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    PositiveFloat,
+    computed_field,
+    model_validator,
+)
 
 
 class Compound(BaseModel):
@@ -28,12 +34,14 @@ class Compound(BaseModel):
     """
 
     id: str
-    name: str
+    name: Optional[str] = None
     formula: Optional[str] = None
     carbon_label: Optional[str] = None
     # For calculating the atom transition, and largest EMU carbon
-    n_labellable_atoms: int = Field(ge=1)
+    n_labellable_atoms: int = Field(ge=0)
+    fragment_id: Optional[str] = None
+    m_z: Optional[PositiveFloat] = None
 
     def __repr__(self):
         """Return a self-description of the compound."""
-        return f"Compound id: {self.id}, name: {self.name}, carbon_label: {self.atom_numbers}"
+        return f"Compound id: {self.id}, name: {self.name}, carbon_label: {self.carbon_label}"

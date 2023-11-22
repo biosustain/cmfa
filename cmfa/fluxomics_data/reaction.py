@@ -7,6 +7,9 @@ from pydantic import BaseModel, Field, computed_field, model_validator
 
 from cmfa.fluxomics_data.compound import Compound
 
+# TODO: Enum?
+# https://docs.pydantic.dev/latest/api/standard_library_types/#enum
+
 
 class Reaction(BaseModel):
     """
@@ -39,7 +42,7 @@ class Reaction(BaseModel):
     name: Optional[str] = None
     compounds: Dict[str, float]
     direction: str = Field(default="<->", pattern=r"^[\<\-\>]\-[\<\-\>]$")
-    atom_transition: Dict[Compound, str]
+    atom_transition: Dict[str, str]
 
     def __repr__(self):
         """Return a string representation of the reaction."""

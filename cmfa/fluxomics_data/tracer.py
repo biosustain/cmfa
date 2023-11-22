@@ -26,7 +26,7 @@ class Tracer(BaseModel):
 
     tracer_id: str
     compound_id: str
-    labelled_atom_positions: set[PositiveInt]
+    labelled_atom_positions: set[PositiveInt]  # If empty is allowed
     purity: float = Field(default=1, gt=0, le=1)
 
 
@@ -39,13 +39,13 @@ class TracerExperiment(BaseModel):
     experiment_id:
         Identifier for the experiment.
 
-    tracers: Dict[str, float]
+    tracer_enrichments: Dict[str, float]
         A dictionary of tracers id and enrichment value, e.g. 90% of [1,2]A and 10% of [2]B is in the medium.
 
     """
 
     experiment_id: str
-    tracers: Dict[str, float] = None
+    tracer_enrichments: Dict[str, float] = dict()
 
     @field_validator("tracers")
     def validate_tracers(cls, v):
