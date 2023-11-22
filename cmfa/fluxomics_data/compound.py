@@ -1,0 +1,39 @@
+"""reaction_network.py includes the description of compounds."""
+
+from operator import gt, lt
+from typing import List, Optional
+
+from pydantic import BaseModel, Field, computed_field, model_validator
+
+
+class Compound(BaseModel):
+    """
+    A class to represent a compound in a reaction network.
+
+    Attributes
+    ----------
+    id : str
+        A unique identifier for the compound.
+    name : str
+        The name of the compound.
+    formula : Optional[str]
+        The chemical formula of the compound.
+    carbon_label: str
+        The labelled carbon in the compound.
+
+    Methods
+    -------
+    __repr__()
+        Returns a string representation of the compound.
+    """
+
+    id: str
+    name: str
+    formula: Optional[str] = None
+    carbon_label: Optional[str] = None
+    # For calculating the atom transition, and largest EMU carbon
+    n_labellable_atoms: int = Field(ge=1)
+
+    def __repr__(self):
+        """Return a self-description of the compound."""
+        return f"Compound id: {self.id}, name: {self.name}, carbon_label: {self.atom_numbers}"
