@@ -71,3 +71,29 @@ tracer.)
   * fragment id
   * mass isotopomer id (i.e. 0, 1, 2, ...)
   * measured intensity (i.e. proportion of total fragment intensity)
+
+# EnzymeMap
+
+<https://chemrxiv.org/engage/chemrxiv/article-details/64ef093e79853bbd78ba04e5>
+
+A Python package with a database of atom maps
+
+Abstract:
+
+> Enzymatic reactions are an ecofriendly, selective and versatile addition,
+> sometimes even alternative to organic reactions for the synthesis of chemical
+> compounds such as pharmaceuticals or fine chemicals. To identify suitable
+> reactions, computational models to predict the activity of enzymes on
+> non-native substrates, to perform retrosynthetic pathway searches, or to
+> predict the outcomes of reactions including regio- and stereoselectivity are
+> becoming increasingly important. However, current approaches are
+> substantially hindered by the limited amount of available data, especially if
+> balanced and atom mapped reactions are needed and if the models feature
+> machine learning components. We therefore constructed a high-quality dataset
+> (EnzymeMap) by developing a large set of correction and validation algorithms
+> for recorded reactions in the literature and showcase its significant
+> positive impact on machine learning models of retrosynthesis, forward
+> prediction, and regioselectivity prediction, outperforming previous
+> approaches by a large margin. Our dataset allows for deep learning models of
+> enzymatic reactions with unprecedented accuracy, and is freely available
+> online.
