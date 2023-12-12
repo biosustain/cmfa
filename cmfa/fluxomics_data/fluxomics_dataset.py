@@ -68,14 +68,3 @@ class FluxomicsDataset(BaseModel):
             f"num_flux_measurements={len(self.flux_measurements)}, "
             f"num_mid_measurements={len(self.mid_measurements)}>"
         )
-
-    def load_data(self, file_path: str):
-        """
-        Load dataset into the fluxomics dataset from a given file.
-
-        Parameters
-        ----------
-        file_path : str
-            The path to the CSV or Excel file containing the dataset.
-        """
-        pass

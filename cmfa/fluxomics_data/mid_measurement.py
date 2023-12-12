@@ -1,8 +1,15 @@
 """mid_measurement.py includes MID data from mass spectrometry for isotopomer fragments."""
 
-from typing import List, Optional
+import hashlib
+from typing import List, Optional, Set
 
-from pydantic import BaseModel, NonNegativeInt, PositiveFloat, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    NonNegativeFloat,
+    PositiveFloat,
+    field_validator,
+)
 
 
 class MIDMeasurementComponent(BaseModel):
@@ -33,7 +40,7 @@ class MIDMeasurementComponent(BaseModel):
     mass_isotopomer_id: str
     measured_intensity: PositiveFloat
     measured_std_dev: PositiveFloat
-    normalized_intensity: PositiveFloat
+    normalized_intensity: NonNegativeFloat = 0
 
     def __repr__(self):
         """Return a string representation of each isotopomer measurement."""
@@ -43,6 +50,19 @@ class MIDMeasurementComponent(BaseModel):
             f"measured_std_dev={self.measured_std_dev}, "
             f"normalized_intensity={self.normalized_intensity}>"
         )
+
+    # def __hash__(self):
+    #     return hashlib.md5()
+
+    # def __eq__(self, other):
+    #     if not isinstance(other, MIDMeasurementComponent):
+    #         return False
+    #     return (
+    #         self.mass_isotopomer_id == other.mass_isotopomer_id and
+    #         self.measured_intensity == other.measured_intensity and
+    #         self.measured_std_dev == other.measured_std_dev and
+    #         self.normalized_intensity == other.normalized_intensity
+    #     )
 
 
 class MIDMeasurement(BaseModel):
@@ -78,7 +98,9 @@ class MIDMeasurement(BaseModel):
     experiment_id: str
     compound_id: str
     fragment_id: str
-    measured_components: List[MIDMeasurementComponent] = []
+    measured_components: List[MIDMeasurementComponent] = Field(
+        default_factory=list
+    )
 
     def __repr__(self):
         """Return a string representation of the MID measurement."""
@@ -91,7 +113,6 @@ class MIDMeasurement(BaseModel):
             f"measured_components=[{components_repr}]>"
         )
 
-    @field_validator("measured_components", mode="after")
     def normalize_components(self):
         """Ensure all the components are normalized."""
         total_intensity = sum(

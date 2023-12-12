@@ -1,6 +1,5 @@
 """reaction_network.py includes the description of compound, reaction and reaction_network."""
 
-# TODO: Set or List
 from copy import deepcopy
 from operator import gt, lt
 from typing import List, Optional, Set
@@ -58,9 +57,9 @@ class ReactionNetwork(BaseModel):
     """
 
     id: str
-    name: Optional[str] = None
-    reactions: Set[Reaction] = set()  # List or Set?
-    compounds: Set[Compound] = set()  # List or Set?
+    name: Optional[str] = ""
+    reactions: Set[Reaction] = Field(default_factory=set)
+    compounds: Set[Compound] = Field(default_factory=set)
 
     def __repr__(self):
         """Return a string representation of the reaction network."""
@@ -71,20 +70,6 @@ class ReactionNetwork(BaseModel):
 
     def generate_compounds(self) -> List[Compound]:
         """Create all the compounds for the model."""
-        # Original:
-        # out = []
-        # for r in self.reactions:
-        #     for t in r.transitions:
-        #         new = Compound(
-        #             id=t.compound_id, n_labellable_atoms=len(t.atom_pattern)
-        #         )
-        #         for cpd in out:
-        #             if cpd.id == new.id:
-        #                 assert cpd.n_labellable_atoms == new.n_labellable_atoms
-        #         if not any(t.compound_id == c.id for c in out):
-        #             out += [new]
-        # return out
-
         compound_set = set()
         for r in self.reactions:
             for c in r.compounds:
@@ -93,24 +78,28 @@ class ReactionNetwork(BaseModel):
 
         return compound_set
 
-    @field_validator("compounds", each_item=True, pre=True, always=True)
+    @model_validator(mode="after")
     def check_all_compounds(self) -> "ReactionNetwork":
         """To check if the reaction network has all the compounds."""
-        reaction_compounds = set(
-            c for r in self.reactions for c in r.compounds()
-        )
-        model_compounds = set(self.compounds)
-        if not reaction_compounds.issubset(model_compounds):
-            missing = reaction_compounds - model_compounds
+        reaction_compounds = set()
+        for reaction in self.reactions:
+            reaction_compounds.update(
+                reaction.compounds.keys()
+            )  # Access compound IDs
+
+        model_compounds = {compound.id for compound in self.compounds}
+        missing = reaction_compounds - model_compounds
+        if missing:
             raise ValueError(f"Missing compounds in the model: {missing}")
+
         return self
 
     def add_reaction(self, reaction: Reaction):
         """To add a reaction to the model. Duplicate reactions (based on id) are not added."""
         if reaction.id not in [r.id for r in self.reactions]:
-            self.reactions.append(reaction)
+            self.reactions.add(reaction)
 
     def add_compound(self, compound: Compound):
         """To add a compound to the model. Duplicate compounds (based on id) are not added."""
         if compound.id not in [c.id for c in self.compounds]:
-            self.compounds.append(compound)
+            self.compounds.add(compound)

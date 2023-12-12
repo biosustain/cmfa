@@ -38,10 +38,14 @@ class Compound(BaseModel):
     formula: Optional[str] = None
     carbon_label: Optional[str] = None
     # For calculating the atom transition, and largest EMU carbon
-    n_labellable_atoms: int = Field(ge=0)
+    # n_labellable_atoms: int = Field(ge=0)
     fragment_id: Optional[str] = None
     m_z: Optional[PositiveFloat] = None
 
     def __repr__(self):
         """Return a self-description of the compound."""
         return f"Compound id: {self.id}, name: {self.name}, carbon_label: {self.carbon_label}"
+
+    def __hash__(self):
+        """Return a unique hash of the compound."""
+        return hash((self.id, self.carbon_label))
