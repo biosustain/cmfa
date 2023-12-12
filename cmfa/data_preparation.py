@@ -58,11 +58,11 @@ def load_tracer_data(file_path: str) -> List[TracerExperiment]:
             atom_positions = set(
                 map(int, row["atom_ids"].strip("[]").split(","))
             )
-            tracer_id = row["tracer_id"]
-            if tracer_id not in tracers:
-                tracers[tracer_id] = Tracer(
-                    tracer_id=tracer_id,
-                    compound_id=row["met_id"],
+            isotope = row["tracer_id"]
+            if isotope not in tracers:
+                tracers[isotope] = Tracer(
+                    isotope=isotope,
+                    labelled_compound=row["met_id"],
                     labelled_atom_positions=atom_positions,
                     purity=float(row["ratio"]),
                 )
@@ -73,13 +73,11 @@ def load_tracer_data(file_path: str) -> List[TracerExperiment]:
             if exp_id not in tracer_experiments:
                 tracer_experiments[exp_id] = TracerExperiment(
                     experiment_id=exp_id,
-                    tracer_enrichments={
-                        tracers[tracer_id].tracer_id: enrichment
-                    },
+                    tracer_enrichments={tracers[isotope].isotope: enrichment},
                 )
             else:
                 tracer_experiments[exp_id].tracer_enrichments[
-                    tracers[tracer_id].tracer_id
+                    tracers[isotope].isotope
                 ] = enrichment
             print(tracer_experiments)
     return list(tracers.values()), list(tracer_experiments.values())
@@ -134,7 +132,6 @@ def load_mid_measurements(file_path: str) -> List[MIDMeasurement]:
     with open(file_path, mode="r", encoding="utf-8-sig") as file:
         reader = csv.DictReader(file)
         for row in reader:
-            print(row)
             experiment_id = row["experiment_id"]
             compound_id = row["met_id"]
             fragment_id = row["ms_id"]
@@ -155,7 +152,6 @@ def load_mid_measurements(file_path: str) -> List[MIDMeasurement]:
                 measured_std_dev=float(row["intensity_std_error"]),
             )
             measurements[key].measured_components.append(component)
-            print(measurements[key].measured_components)
 
     # Normalize intensities for each MIDMeasurement
     for mid_measurement in measurements.values():
@@ -207,20 +203,20 @@ def parse_reaction_equation(
     # Function to parse each side of the equation
     def parse_side(side: str, sign: int):
         for match in re.finditer(pattern, side):
-            coeff_str, compound_id, atom_transition = match.groups()
+            coeff_str, labelled_compound, atom_transition = match.groups()
             coeff = float(coeff_str) if coeff_str else 1.0
             coeff *= sign
 
-            if compound_id not in compounds:
-                compounds[compound_id] = 0
-                atom_transitions[compound_id] = []
+            if labelled_compound not in compounds:
+                compounds[labelled_compound] = 0
+                atom_transitions[labelled_compound] = []
 
-            compounds[compound_id] += coeff
-            atom_transitions[compound_id].append(atom_transition)
+            compounds[labelled_compound] += coeff
+            atom_transitions[labelled_compound].append(atom_transition)
 
             # Create and add new Compound objects
             new_compound = Compound(
-                id=compound_id, carbon_label=atom_transition
+                id=labelled_compound, carbon_label=atom_transition
             )
             compounds_set.add(new_compound)
 
@@ -291,7 +287,7 @@ def prepare_data(data_id):
     """
     print("Reading raw data...")
 
-    print("\n----------\nloading tracer\n----------\n")
+    print("\n----------\nloading tracer & experiments\n----------\n")
     tracers, tracer_experiments = load_tracer_data(f"{DATA_DIR}/{TRACER_FILE}")
     print("\n----------\nloading flux\n----------\n")
     flux_measurements = load_flux_measurements(
@@ -303,7 +299,7 @@ def prepare_data(data_id):
     )
     print("\n----------\nloading reaction\n----------\n")
     reaction_network = load_reactions(f"{DATA_DIR}/{REACTION_FILE}", "test")
-    print("\n----------\nloading data_set\n----------\n")
+    print("\n----------\nmaking fluxomics dataset\n----------\n")
 
     FD = FluxomicsDataset(
         id=data_id,
@@ -313,8 +309,7 @@ def prepare_data(data_id):
         flux_measurements=flux_measurements,
         mid_measurements=mid_measurements,
     )
-
-    print(FD)
+    print(repr(FD))
     return FD
 
 

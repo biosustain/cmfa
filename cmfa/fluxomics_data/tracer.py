@@ -11,10 +11,10 @@ class Tracer(BaseModel):
 
     Attributes
     ----------
-    tracer_id: str
+    isotope: str
         Identifier of the tracer used. For instance, [2-13C]A indicates the metabolite A is labeled with 13C at the 2nd carbon position.
 
-    compound_id: str
+    labelled_compound: str
         tracer compound identifier, e.g. "Glu__L"
 
     labelled_atom_positions: set[PositiveInt]
@@ -24,8 +24,8 @@ class Tracer(BaseModel):
         The purity of the tracer, a float between 0 and 1, can be called as auto_mdv.
     """
 
-    tracer_id: str
-    compound_id: str
+    isotope: str
+    labelled_compound: str
     labelled_atom_positions: set[PositiveInt]  # If empty is allowed
     purity: float = Field(default=1, gt=0, le=1)
 
@@ -33,13 +33,13 @@ class Tracer(BaseModel):
         """Return a string representation of the Tracer instance."""
         atom_positions = ", ".join(map(str, self.labelled_atom_positions))
         return (
-            f"<Tracer tracer_id={self.tracer_id}, compound_id={self.compound_id}, "
+            f"<Tracer isotope={self.isotope}, labelled_compound={self.labelled_compound}, "
             f"labelled_atom_positions=[{atom_positions}], purity={self.purity}>"
         )
 
     def __hash__(self) -> int:
         """Return a unique hash of the compound."""
-        return hash((self.tracer_id, self.compound_id, self.purity))
+        return hash((self.isotope, self.labelled_compound, self.purity))
 
 
 class TracerExperiment(BaseModel):
@@ -63,8 +63,8 @@ class TracerExperiment(BaseModel):
         """Return a string representation of the TracerExperiment instance."""
         enrichments_repr = ", ".join(
             [
-                f"{tracer_id}: {enrichment}"
-                for tracer_id, enrichment in self.tracer_enrichments.items()
+                f"{isotope}: {enrichment}"
+                for isotope, enrichment in self.tracer_enrichments.items()
             ]
         )
         return (
@@ -76,8 +76,8 @@ class TracerExperiment(BaseModel):
     def validate_tracers(cls, v):
         """Validate the tracers in the experiment."""
         if not all(
-            isinstance(tracer_id, str) and isinstance(enrichment, float)
-            for tracer_id, enrichment in v.items()
+            isinstance(isotope, str) and isinstance(enrichment, float)
+            for isotope, enrichment in v.items()
         ):
             raise ValueError(
                 "Tracers must be a dictionary with tracer ID strings as keys and float as values"
@@ -85,22 +85,22 @@ class TracerExperiment(BaseModel):
         # TODO: Check if tracer is found.
         return v
 
-    def add_tracer(self, tracer_id: str, enrichment: float):
+    def add_tracer(self, isotope: str, enrichment: float):
         """Add a new tracer to the experiment."""
-        self.tracers[tracer_id] = enrichment
+        self.tracers[isotope] = enrichment
 
-    def update_tracer_enrichment(self, tracer_id: str, enrichment: float):
+    def update_tracer_enrichment(self, isotope: str, enrichment: float):
         """Update tracer information."""
-        if tracer_id in self.tracers:
-            self.tracers[tracer_id] = enrichment
+        if isotope in self.tracers:
+            self.tracers[isotope] = enrichment
         else:
-            raise ValueError(f"Tracer {tracer_id} not found in experiment")
+            raise ValueError(f"Tracer {isotope} not found in experiment")
 
 
 # t = Tracer.model_validate(
 #     {
-#         "tracer_id": "[1,2-13C]glucose",
-#         "compound_id": "A",
+#         "isotope": "[1,2-13C]glucose",
+#         "labelled_compound": "A",
 #         "labelled_atom_positions": [1, 2],
 #         "purity": 0.95,
 #     }
