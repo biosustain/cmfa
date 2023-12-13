@@ -29,6 +29,7 @@ FLUX_MEASUREMENTS_FILE = "flux.csv"
 MS_MEASUREMENTS_FILE = "ms_measurements.csv"
 REACTION_FILE = "reactions.csv"
 TRACER_FILE = "tracers.csv"
+MODEL_FILE = "model.json"
 CUR_DIR = os.getcwd()
 DATA_DIR = os.path.join(CUR_DIR, "data", "test_data")
 
@@ -62,7 +63,7 @@ def load_tracer_data(file_path: str) -> List[TracerExperiment]:
             if isotope not in tracers:
                 tracers[isotope] = Tracer(
                     isotope=isotope,
-                    labelled_compound=row["met_id"],
+                    compound=row["met_id"],
                     labelled_atom_positions=atom_positions,
                     purity=float(row["ratio"]),
                 )
@@ -104,7 +105,7 @@ def load_flux_measurements(file_path: str) -> List[FluxMeasurement]:
             flux_measurement = FluxMeasurement(
                 experiment_id=row["experiment_id"],
                 reaction_id=row["rxn_id"],
-                replicate=1,  # Assuming replicate information is not in the CSV
+                replicate=row["replicate"],
                 measured_flux=float(row["flux"]),
                 measurement_error=float(row["flux_std_error"]),
             )
@@ -203,21 +204,19 @@ def parse_reaction_equation(
     # Function to parse each side of the equation
     def parse_side(side: str, sign: int):
         for match in re.finditer(pattern, side):
-            coeff_str, labelled_compound, atom_transition = match.groups()
+            coeff_str, compound, atom_transition = match.groups()
             coeff = float(coeff_str) if coeff_str else 1.0
             coeff *= sign
 
-            if labelled_compound not in compounds:
-                compounds[labelled_compound] = 0
-                atom_transitions[labelled_compound] = []
+            if compound not in compounds:
+                compounds[compound] = 0
+                atom_transitions[compound] = []
 
-            compounds[labelled_compound] += coeff
-            atom_transitions[labelled_compound].append(atom_transition)
+            compounds[compound] += coeff
+            atom_transitions[compound].append(atom_transition)
 
             # Create and add new Compound objects
-            new_compound = Compound(
-                id=labelled_compound, carbon_label=atom_transition
-            )
+            new_compound = Compound(id=compound, carbon_label=atom_transition)
             compounds_set.add(new_compound)
 
     # Parse left-hand side and right-hand side
@@ -270,7 +269,7 @@ def load_reactions(
     return RN
 
 
-def prepare_data(data_id):
+def prepare_data() -> FluxomicsDataset:
     """
     Load all existing data in a single model.
 
@@ -302,7 +301,6 @@ def prepare_data(data_id):
     print("\n----------\nmaking fluxomics dataset\n----------\n")
 
     FD = FluxomicsDataset(
-        id=data_id,
         reaction_network=reaction_network,
         tracers=tracers,
         tracer_experiments=tracer_experiments,
@@ -313,4 +311,46 @@ def prepare_data(data_id):
     return FD
 
 
-FD = prepare_data("test")
+def export_fluxomics_dataset_to_json(dataset: FluxomicsDataset, filename: str):
+    """
+    Export a FluxomicsDataset instance to a JSON file.
+
+    Parameters
+    ----------
+    dataset : FluxomicsDataset
+        The FluxomicsDataset instance to be exported.
+    filename : str
+        The path of the file where the JSON data will be saved.
+    """
+    with open(filename, "w", encoding="utf-8") as file:
+        json_data = dataset.model_dump_json(indent=4)
+        file.write(json_data)
+
+
+def import_fluxomics_dataset_from_json(filename: str) -> FluxomicsDataset:
+    """
+    Import a FluxomicsDataset instance from a JSON file.
+
+    Parameters
+    ----------
+    filename : str
+        The path of the JSON file to be imported.
+
+    Returns
+    -------
+    FluxomicsDataset
+        The imported FluxomicsDataset instance.
+    """
+    with open(filename, "r", encoding="utf-8") as file:
+        json_data = file.read()
+        dataset = FluxomicsDataset.model_validate_json(json_data)
+        return dataset
+
+
+FD = prepare_data()
+
+export_fluxomics_dataset_to_json(FD, f"{DATA_DIR}/{MODEL_FILE}")
+
+FD2 = import_fluxomics_dataset_from_json(f"{DATA_DIR}/{MODEL_FILE}")
+
+print(FD == FD2)
