@@ -1,11 +1,20 @@
 """reaction_network.py includes the description of reactions."""
 
+import hashlib
+from enum import Enum
 from operator import gt, lt
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, computed_field, model_validator
 
 from cmfa.fluxomics_data.compound import Compound
+
+
+class ReactionDirection(Enum):
+    """A class that defines reversible and forward reactions."""
+
+    REVERSIBLE = 0  # "<->"
+    FORWARD = 1  # "-->"
 
 
 class Reaction(BaseModel):
@@ -22,8 +31,9 @@ class Reaction(BaseModel):
         A dictionary with compound objects as keys and their stoichiometric coefficients as values.
     direction : str
         <-> means reversible reaction; <-- means backward reaction; --> means forward reaction
+        True or False
     atom_transition:
-
+        Dict{str (compound id), str (atom pattern)}
 
     Methods
     -------
@@ -38,29 +48,55 @@ class Reaction(BaseModel):
     id: str
     name: Optional[str] = None
     compounds: Dict[str, float]
-    direction: str = Field(default="<->", pattern=r"^[\<\-\>]\-[\<\-\>]$")
-    atom_transition: Dict[Compound, str]
+    direction: ReactionDirection = ReactionDirection.REVERSIBLE
+    atom_transition: Dict[str, list] = dict()
 
     def __repr__(self):
         """Return a string representation of the reaction."""
         return (
-            f"Reaction id: {self.id}, name: {self.name},",
-            f"number of compounds: {len(self.compounds.keys)},direction: {self.direction} >",
+            f"Reaction id={self.id}, name={self.name},"
+            f"compounds={self.compounds}, direction={self.direction.name}, "
+            f"atom_transtions={self.atom_transition}>"
         )
 
+    def __hash__(self) -> int:
+        """Return a unique hash of the reaction."""
+        return hash(self.id)
+
     @model_validator(mode="after")
-    def check_atom_balance(self) -> "Reaction":
-        """Check if the atoms are balanced after the class is created."""
-        atoms_in_str, atoms_out_str = (
-            "".join(
-                sorted(t.atom_pattern for t in self.transitions if f(t.coef, 0))
+    def check_atom_balance(self):
+        """
+        Check if the atoms are balanced in the reaction based on atom transitions.
+
+        Parameters
+        ----------
+        atom_transition : Dict[str, str]
+            A dictionary mapping each compound to its atom transition pattern.
+
+        Returns
+        -------
+        Dict[str, str]
+            The validated atom transition dictionary.
+
+        Raises
+        ------
+        ValueError
+            If the atoms are not balanced.
+        """
+        if self.compounds == dict():
+            return self.atom_transition  # Cannot validate without compounds
+
+        lhs_atoms, rhs_atoms = "", ""
+        for compound, coeff in self.compounds.items():
+            transition = self.atom_transition.get(compound, "")
+            if coeff < 0:  # Reactant
+                lhs_atoms += "".join(transition)
+            else:  # Product
+                rhs_atoms += "".join(transition)
+
+        if sorted(lhs_atoms) != sorted(rhs_atoms):
+            raise ValueError(
+                f"Unbalanced atoms in reaction {self.id}: {lhs_atoms} != {rhs_atoms}"
             )
-            for f in (lt, gt)
-        )
-        msg = (
-            f"Reaction {self.id} has unbalanced atom transitions."
-            f"\n\tAtoms in: {atoms_in_str}"
-            f"\n\tAtoms out: {atoms_out_str}\n"
-        )
-        assert atoms_in_str == atoms_out_str, msg
+
         return self
