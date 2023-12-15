@@ -14,7 +14,7 @@ class Tracer(BaseModel):
     isotope: str
         Identifier of the tracer used. For instance, [2-13C]A indicates the metabolite A is labeled with 13C at the 2nd carbon position.
 
-    labelled_compound: str
+    compound: str
         tracer compound identifier, e.g. "Glu__L"
 
     labelled_atom_positions: set[PositiveInt]
@@ -25,7 +25,7 @@ class Tracer(BaseModel):
     """
 
     isotope: str
-    labelled_compound: str
+    compound: str
     labelled_atom_positions: set[PositiveInt]  # If empty is allowed
     purity: float = Field(default=1, gt=0, le=1)
 
@@ -33,13 +33,13 @@ class Tracer(BaseModel):
         """Return a string representation of the Tracer instance."""
         atom_positions = ", ".join(map(str, self.labelled_atom_positions))
         return (
-            f"<Tracer isotope={self.isotope}, labelled_compound={self.labelled_compound}, "
+            f"<Tracer isotope={self.isotope}, compound={self.compound}, "
             f"labelled_atom_positions=[{atom_positions}], purity={self.purity}>"
         )
 
     def __hash__(self) -> int:
         """Return a unique hash of the compound."""
-        return hash((self.isotope, self.labelled_compound, self.purity))
+        return hash((self.isotope, self.compound, self.purity))
 
 
 class TracerExperiment(BaseModel):
@@ -95,21 +95,3 @@ class TracerExperiment(BaseModel):
             self.tracers[isotope] = enrichment
         else:
             raise ValueError(f"Tracer {isotope} not found in experiment")
-
-
-# t = Tracer.model_validate(
-#     {
-#         "isotope": "[1,2-13C]glucose",
-#         "labelled_compound": "A",
-#         "labelled_atom_positions": [1, 2],
-#         "purity": 0.95,
-#     }
-# )
-# te = TracerExperiment.model_validate(
-#     {
-#         "experiment_id": "e1",
-#         "tracer_enrichments": {"[1,2-13C]glucose": 1.0},
-#     }
-# )
-# print(t)
-# print(te)

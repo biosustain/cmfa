@@ -4,13 +4,7 @@ from copy import deepcopy
 from operator import gt, lt
 from typing import List, Optional, Set
 
-from pydantic import (
-    BaseModel,
-    Field,
-    computed_field,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, Field, model_validator
 
 from cmfa.fluxomics_data.compound import Compound
 from cmfa.fluxomics_data.reaction import Reaction
@@ -66,6 +60,16 @@ class ReactionNetwork(BaseModel):
         return (
             f"<ReactionNetwork id={self.id}, name={self.name}, "
             f"num_reactions={len(self.reactions)}, num_compounds={len(self.compounds)}>"
+        )
+
+    def __eq__(self, other):
+        """Check equality with another ReactionNetwork instance."""
+        if not isinstance(other, ReactionNetwork):
+            return NotImplemented
+
+        return (
+            self.reactions == other.reactions
+            and self.compounds == other.compounds
         )
 
     def generate_compounds(self) -> List[Compound]:
