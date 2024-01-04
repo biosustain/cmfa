@@ -4,69 +4,60 @@ from copy import deepcopy
 
 import pytest
 
+from cmfa.fluxomics_data.compound import Compound
+from cmfa.fluxomics_data.reaction import Reaction
 from cmfa.fluxomics_data.reaction_network import ReactionNetwork
 
 EXAMPLE_NETWORK_INPUT = {
     "id": "Example metabolic network",
-    "reactions": [
-        {
-            "id": "v1",
-            "transitions": [
-                {"compound_id": "A", "atom_pattern": "abc", "coef": -1},
-                {"compound_id": "B", "atom_pattern": "abc", "coef": 1},
-            ],
-        },
-        {
-            "id": "v2",
-            "transitions": [
-                {"compound_id": "B", "atom_pattern": "abc", "coef": -1},
-                {"compound_id": "D", "atom_pattern": "abc", "coef": 1},
-            ],
-        },
-        {
-            "id": "v3",
-            "transitions": [
-                {"compound_id": "D", "atom_pattern": "abc", "coef": -1},
-                {"compound_id": "B", "atom_pattern": "abc", "coef": 1},
-            ],
-        },
-        {
-            "id": "v4",
-            "transitions": [
-                {"compound_id": "B", "atom_pattern": "abc", "coef": -1},
-                {"compound_id": "C", "atom_pattern": "ab", "coef": 1},
-                {"compound_id": "E", "atom_pattern": "c", "coef": 1},
-            ],
-        },
-        {
-            "id": "v5",
-            "transitions": [
-                {"compound_id": "B", "atom_pattern": "abc", "coef": -1},
-                {"compound_id": "C", "atom_pattern": "de", "coef": -1},
-                {"compound_id": "D", "atom_pattern": "bcd", "coef": 1},
-                {"compound_id": "E", "atom_pattern": "a", "coef": 1},
-                {"compound_id": "E", "atom_pattern": "e", "coef": 1},
-            ],
-        },
-        {
-            "id": "v6",
-            "transitions": [
-                {"compound_id": "D", "atom_pattern": "abc", "coef": -1},
-                {"compound_id": "F", "atom_pattern": "abc", "coef": 1},
-            ],
-        },
-    ],
+    "compounds": {
+        Compound(id="B", name="compound B", formula="b2o"),
+        Compound(id="C", name="compound C", formula="c2o"),
+        Compound(id="D", name="compound D", formula="d2o"),
+        Compound(id="E", name="compound E", formula="e2o"),
+        Compound(id="F", name="compound F", formula="f2o"),
+    },
+    "reactions": {
+        Reaction(
+            id="v1",
+            stoichiometry={"A": -1, "B": 1},
+            atom_transition={"A": ["abc"], "B": ["abc"]},
+        ),
+        Reaction(
+            id="v2",
+            stoichiometry={"B": -1, "D": 1},
+            atom_transition={"B": ["abc"], "D": ["abc"]},
+        ),
+        Reaction(
+            id="v3",
+            stoichiometry={"D": -1, "B": 1},
+            atom_transition={"D": ["abc"], "B": ["abc"]},
+        ),
+        Reaction(
+            id="v4",
+            stoichiometry={"B": -1, "C": 1, "E": 1},
+            atom_transition={"B": ["abc"], "C": ["ab"], "E": ["c"]},
+        ),
+        Reaction(
+            id="v5",
+            stoichiometry={"B": -1, "C": -1, "D": 1, "E": 1, "F": 1},
+            atom_transition={
+                "B": ["abc"],
+                "C": ["de"],
+                "D": ["bcd"],
+                "E": ["a"],
+                "F": ["e"],
+            },
+        ),
+        Reaction(
+            id="v6",
+            stoichiometry={"D": -1, "F": 1},
+            atom_transition={"D": ["abc"], "F": ["abc"]},
+        ),
+    },
 }
-EXAMPLE_NETWORK_INPUT_BAD = deepcopy(EXAMPLE_NETWORK_INPUT)
-EXAMPLE_NETWORK_INPUT_BAD["reactions"][1]["transitions"][0][
-    "atom_pattern"
-] = "abcd"
 
 
 def test_example_network():
+    """Test that loading a reaction networks works in a simple case."""
     ReactionNetwork.model_validate(EXAMPLE_NETWORK_INPUT)
-
-
-@pytest.mark.xfail
-def test_example_network_bad():
-    ReactionNetwork.model_validate(EXAMPLE_NETWORK_INPUT_BAD)

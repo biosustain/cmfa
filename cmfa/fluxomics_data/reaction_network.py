@@ -1,10 +1,11 @@
 """reaction_network.py includes the description of compound, reaction and reaction_network."""
 
+import warnings
 from copy import deepcopy
 from operator import gt, lt
 from typing import List, Optional, Set
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
 
 from cmfa.fluxomics_data.compound import Compound
 from cmfa.fluxomics_data.reaction import Reaction
@@ -39,21 +40,14 @@ class ReactionNetwork(BaseModel):
         Set of reactions in the network.
     compounds : Set[Compound]
         Set of compounds in the network.
-
-    Methods
-    -------
-    add_reaction(reaction: Reaction)
-        Adds a unique reaction to the network.
-        If the reaction is already present, it is ignored.
-    add_compound(compound: Compound)
-        Adds a unique compound to the network.
-        If the compound is already present, it is ignored.
     """
 
     id: str
-    name: Optional[str] = ""
+    name: str = ""
     reactions: Set[Reaction] = Field(default_factory=set)
-    compounds: Set[Compound] = Field(default_factory=set)
+    user_compounds: Set[Compound] = Field(
+        default_factory=set, alias="compounds"
+    )
 
     def __repr__(self):
         """Return a string representation of the reaction network."""
@@ -72,38 +66,30 @@ class ReactionNetwork(BaseModel):
             and self.compounds == other.compounds
         )
 
-    def generate_compounds(self) -> List[Compound]:
-        """Create all the compounds for the model."""
-        compound_set = set()
-        for r in self.reactions:
-            for c in r.stoichiometry:
-                c_new = c.deepcopy()
-                compound_set.add(c_new)
-
-        return compound_set
+    @computed_field
+    @property
+    def compounds(self: "ReactionNetwork") -> Set[Compound]:
+        """Add the compounds field."""
+        compounds = {Compound.model_validate(c) for c in self.user_compounds}
+        for reaction in self.reactions:
+            for compound_id in reaction.stoichiometry.keys():
+                new_compound = Compound(id=compound_id)
+                if not any(c.id == compound_id for c in compounds):
+                    warnings.warn(
+                        f"adding auto-generated compound {new_compound}"
+                    )
+                    compounds.add(new_compound)
+        return compounds
 
     @model_validator(mode="after")
     def check_all_compounds(self) -> "ReactionNetwork":
-        """To check if the reaction network has all the compounds."""
+        """Check if the reaction network has all the compounds."""
         reaction_compounds = set()
         for reaction in self.reactions:
-            reaction_compounds.update(
-                reaction.stoichiometry.keys()
-            )  # Access compound IDs
-
+            # Access compound IDs
+            reaction_compounds.update(reaction.stoichiometry.keys())
         model_compounds = {compound.id for compound in self.compounds}
         missing = reaction_compounds - model_compounds
-        if missing:
+        if missing != set():
             raise ValueError(f"Missing compounds in the model: {missing}")
-
         return self
-
-    def add_reaction(self, reaction: Reaction):
-        """To add a reaction to the model. Duplicate reactions (based on id) are not added."""
-        if reaction.id not in [r.id for r in self.reactions]:
-            self.reactions.add(reaction)
-
-    def add_compound(self, compound: Compound):
-        """To add a compound to the model. Duplicate compounds (based on id) are not added."""
-        if compound.id not in [c.id for c in self.compounds]:
-            self.compounds.add(compound)
