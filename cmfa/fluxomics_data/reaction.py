@@ -27,11 +27,10 @@ class Reaction(BaseModel):
         A unique identifier for the reaction.
     name : str
         The name of the reaction.
-    compounds : Dict[str, float]
+    stoichiometry : Dict[str, float]
         A dictionary with compound objects as keys and their stoichiometric coefficients as values.
-    direction : str
-        <-> means reversible reaction; <-- means backward reaction; --> means forward reaction
-        True or False
+    reversible : bool
+        Whether or not the reaction is reversible
     atom_transition:
         Dict{str (compound id), str (atom pattern)}
 
@@ -47,15 +46,16 @@ class Reaction(BaseModel):
 
     id: str
     name: Optional[str] = None
-    compounds: Dict[str, float]
-    direction: ReactionDirection = ReactionDirection.REVERSIBLE
+    stoichiometry: Dict[str, float]
+    reversible: bool = True
     atom_transition: Dict[str, list] = dict()
 
     def __repr__(self):
         """Return a string representation of the reaction."""
         return (
             f"Reaction id={self.id}, name={self.name},"
-            f"compounds={self.compounds}, direction={self.direction.name}, "
+            f"stoichiometry={self.stoichiometry},"
+            f"direction={self.reversible}, "
             f"atom_transtions={self.atom_transition}>"
         )
 
@@ -83,11 +83,11 @@ class Reaction(BaseModel):
         ValueError
             If the atoms are not balanced.
         """
-        if self.compounds == dict():
+        if self.stoichiometry == dict():
             return self.atom_transition  # Cannot validate without compounds
 
         lhs_atoms, rhs_atoms = "", ""
-        for compound, coeff in self.compounds.items():
+        for compound, coeff in self.stoichiometry.items():
             transition = self.atom_transition.get(compound, "")
             if coeff < 0:  # Reactant
                 lhs_atoms += "".join(transition)

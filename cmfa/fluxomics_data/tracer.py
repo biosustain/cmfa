@@ -12,7 +12,8 @@ class Tracer(BaseModel):
     Attributes
     ----------
     isotope: str
-        Identifier of the tracer used. For instance, [2-13C]A indicates the metabolite A is labeled with 13C at the 2nd carbon position.
+        Identifier of the tracer used. For instance, [2-13C]A indicates the
+        metabolite A is labeled with 13C at the 2nd carbon position.
 
     compound: str
         tracer compound identifier, e.g. "Glu__L"
@@ -21,7 +22,9 @@ class Tracer(BaseModel):
         Positions of the carbon atoms in the tracer.
 
     purity: float
-        The purity of the tracer, a float between 0 and 1, can be called as auto_mdv.
+        The purity of the tracer, a float between 0 and 1, can be called as
+        auto_mdv.
+
     """
 
     isotope: str

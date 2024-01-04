@@ -76,7 +76,7 @@ class ReactionNetwork(BaseModel):
         """Create all the compounds for the model."""
         compound_set = set()
         for r in self.reactions:
-            for c in r.compounds:
+            for c in r.stoichiometry:
                 c_new = c.deepcopy()
                 compound_set.add(c_new)
 
@@ -88,7 +88,7 @@ class ReactionNetwork(BaseModel):
         reaction_compounds = set()
         for reaction in self.reactions:
             reaction_compounds.update(
-                reaction.compounds.keys()
+                reaction.stoichiometry.keys()
             )  # Access compound IDs
 
         model_compounds = {compound.id for compound in self.compounds}

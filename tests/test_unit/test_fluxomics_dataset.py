@@ -2,10 +2,8 @@
 
 from cmfa.fluxomics_data.fluxomics_dataset import FluxomicsDataset
 
-from .test_measurement import (
-    EXAMPLE_FLUX_MEASUREMENT_INPUT,
-    EXAMPLE_MID_MEASUREMENT_INPUT,
-)
+from .test_flux_measurement import EXAMPLE_FLUX_MEASUREMENT_INPUT
+from .test_mid_measurement import EXAMPLE_MID_MEASUREMENT_INPUT
 from .test_reaction_network import EXAMPLE_NETWORK_INPUT
 from .test_tracer import EXAMPLE_TRACER_EXPERIMENT_INPUT, EXAMPLE_TRACER_INPUT
 
@@ -21,4 +19,5 @@ EXAMPLE_FLUXOMICS_DATASET_INPUT = {
 
 
 def test_fluxomics_dataset():
+    """Test good case of loading a fluxomics dataset."""
     FluxomicsDataset.model_validate(EXAMPLE_FLUXOMICS_DATASET_INPUT)

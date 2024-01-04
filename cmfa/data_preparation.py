@@ -254,8 +254,8 @@ def load_reactions(
             reaction = Reaction(
                 id=row["rxn_id"],
                 name=row.get("rxn_name"),
-                compounds=compounds,
-                direction=direction,
+                stoichiometry=compounds,
+                reversible=direction,
                 atom_transition=atom_transitions,
             )
             reactions_set.add(reaction)

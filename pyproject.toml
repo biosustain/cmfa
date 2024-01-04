@@ -17,7 +17,7 @@ dependencies = [
     "jupyter",
     "numpy",
     "pandas",
-    "pandera@git+https://github.com/unionai-oss/pandera.git@main",
+    "pandera >= 0.18.0",
     "pydantic >= 2.0.0",
     "scipy",
     "scikit-learn",
