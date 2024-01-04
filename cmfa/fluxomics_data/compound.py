@@ -18,7 +18,7 @@ class Compound(BaseModel):
         The name of the compound.
     formula : Optional[str]
         The chemical formula of the compound.
-    carbon_label: str
+    carbon_label: Optional[str]
         The labelled carbon in the compound.
 
     Methods
