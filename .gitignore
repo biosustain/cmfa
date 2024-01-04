@@ -2,6 +2,7 @@
 # Keep non-raw data out of version control by default
 data/*/*
 !data/raw/*
+!data/test_data/*
 
 # Keep results of model runs out of version control by default
 results/runs/*
