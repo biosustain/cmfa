@@ -29,5 +29,5 @@ jobs:
     - name: Run pytest
       run: |
         make env
-        . ./venv/bin/activate
+        . .venv/bin/activate
         python -m pytest
