@@ -113,14 +113,10 @@ class MIDMeasurement(BaseModel):
             f"measured_components=[{components_repr}]>"
         )
 
-    def normalize_components(self):
+    @field_validator("measured_components")
+    def normalize_components(cls, v: List[MIDMeasurementComponent]):
         """Ensure all the components are normalized."""
-        total_intensity = sum(
-            comp.measured_intensity for comp in self.measured_components
-        )
-        for comp in self.measured_components:
-            comp.normalized_intensity = (
-                comp.measured_intensity / total_intensity
-                if total_intensity
-                else 0
-            )
+        total = sum(component.measured_intensity for component in v)
+        for comp in v:
+            comp.normalized_intensity = comp.measured_intensity / total
+        return v

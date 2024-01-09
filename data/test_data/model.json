@@ -1,90 +1,18 @@
 {
     "reaction_network": {
-        "id": "test",
-        "name": null,
+        "id": "a",
+        "name": "",
         "reactions": [
             {
-                "id": "R1",
-                "name": null,
-                "compounds": {
-                    "A": -1.0,
-                    "B": 1.0
-                },
-                "direction": 1,
-                "atom_transition": {
-                    "A": [
-                        "abc"
-                    ],
-                    "B": [
-                        "abc"
-                    ]
-                }
-            },
-            {
-                "id": "R3",
-                "name": null,
-                "compounds": {
-                    "B": -1.0,
-                    "C": 1.0,
-                    "E": 1.0
-                },
-                "direction": 1,
-                "atom_transition": {
-                    "B": [
-                        "abc"
-                    ],
-                    "C": [
-                        "bc"
-                    ],
-                    "E": [
-                        "a"
-                    ]
-                }
-            },
-            {
-                "id": "R2",
-                "name": null,
-                "compounds": {
-                    "B": -1.0,
-                    "D": 1.0
-                },
-                "direction": 0,
-                "atom_transition": {
-                    "B": [
-                        "abc"
-                    ],
-                    "D": [
-                        "abc"
-                    ]
-                }
-            },
-            {
-                "id": "R5",
-                "name": null,
-                "compounds": {
-                    "D": -1.0,
-                    "F": 1.0
-                },
-                "direction": 1,
-                "atom_transition": {
-                    "D": [
-                        "abc"
-                    ],
-                    "F": [
-                        "abc"
-                    ]
-                }
-            },
-            {
                 "id": "R4",
-                "name": null,
-                "compounds": {
+                "name": "R4",
+                "stoichiometry": {
                     "B": -1.0,
                     "C": -1.0,
                     "D": 1.0,
                     "E": 2.0
                 },
-                "direction": 1,
+                "reversible": false,
                 "atom_transition": {
                     "B": [
                         "abc"
@@ -100,70 +28,87 @@
                         "e"
                     ]
                 }
+            },
+            {
+                "id": "R2",
+                "name": "R2",
+                "stoichiometry": {
+                    "B": -1.0,
+                    "D": 1.0
+                },
+                "reversible": true,
+                "atom_transition": {
+                    "B": [
+                        "abc"
+                    ],
+                    "D": [
+                        "abc"
+                    ]
+                }
+            },
+            {
+                "id": "R1",
+                "name": "R1",
+                "stoichiometry": {
+                    "A": -1.0,
+                    "B": 1.0
+                },
+                "reversible": false,
+                "atom_transition": {
+                    "A": [
+                        "abc"
+                    ],
+                    "B": [
+                        "abc"
+                    ]
+                }
+            },
+            {
+                "id": "R5",
+                "name": "R5",
+                "stoichiometry": {
+                    "D": -1.0,
+                    "F": 1.0
+                },
+                "reversible": false,
+                "atom_transition": {
+                    "D": [
+                        "abc"
+                    ],
+                    "F": [
+                        "abc"
+                    ]
+                }
+            },
+            {
+                "id": "R3",
+                "name": "R3",
+                "stoichiometry": {
+                    "B": -1.0,
+                    "C": 1.0,
+                    "E": 1.0
+                },
+                "reversible": false,
+                "atom_transition": {
+                    "B": [
+                        "abc"
+                    ],
+                    "C": [
+                        "bc"
+                    ],
+                    "E": [
+                        "a"
+                    ]
+                }
             }
         ],
+        "user_compounds": [],
         "compounds": [
             {
-                "id": "E",
-                "name": null,
-                "formula": null,
-                "carbon_label": "a",
-                "fragment_id": null,
-                "m_z": null
-            },
-            {
-                "id": "D",
-                "name": null,
-                "formula": null,
-                "carbon_label": "abc",
-                "fragment_id": null,
-                "m_z": null
-            },
-            {
-                "id": "D",
-                "name": null,
-                "formula": null,
-                "carbon_label": "bcd",
-                "fragment_id": null,
-                "m_z": null
-            },
-            {
                 "id": "C",
                 "name": null,
                 "formula": null,
-                "carbon_label": "bc",
-                "fragment_id": null,
-                "m_z": null
-            },
-            {
-                "id": "C",
-                "name": null,
-                "formula": null,
-                "carbon_label": "de",
-                "fragment_id": null,
-                "m_z": null
-            },
-            {
-                "id": "E",
-                "name": null,
-                "formula": null,
-                "carbon_label": "e",
-                "fragment_id": null,
-                "m_z": null
-            },
-            {
-                "id": "B",
-                "name": null,
-                "formula": null,
-                "carbon_label": "abc",
-                "fragment_id": null,
-                "m_z": null
-            },
-            {
-                "id": "F",
-                "name": null,
-                "formula": null,
-                "carbon_label": "abc",
+                "carbon_label": null,
                 "fragment_id": null,
                 "m_z": null
             },
@@ -171,7 +116,39 @@
                 "id": "A",
                 "name": null,
                 "formula": null,
-                "carbon_label": "abc",
+                "carbon_label": null,
+                "fragment_id": null,
+                "m_z": null
+            },
+            {
+                "id": "F",
+                "name": null,
+                "formula": null,
+                "carbon_label": null,
+                "fragment_id": null,
+                "m_z": null
+            },
+            {
+                "id": "B",
+                "name": null,
+                "formula": null,
+                "carbon_label": null,
+                "fragment_id": null,
+                "m_z": null
+            },
+            {
+                "id": "E",
+                "name": null,
+                "formula": null,
+                "carbon_label": null,
+                "fragment_id": null,
+                "m_z": null
+            },
+            {
+                "id": "D",
+                "name": null,
+                "formula": null,
+                "carbon_label": null,
                 "fragment_id": null,
                 "m_z": null
             }
