@@ -26,3 +26,6 @@ def test_load_dataset_from_csv():
     )
     ds_from_json = import_fluxomics_dataset_from_json(MODEL_FILE)
     assert ds_from_csv == ds_from_json
+
+
+test_load_dataset_from_csv()

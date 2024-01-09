@@ -3,18 +3,13 @@
 These functions should take in a dataframe of measurements and return a
 PreparedData object.
 """
-import csv
 import json
 import logging
-import os
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import pandas as pd
-import pandera as pa
-from pandera.typing import DataFrame
-from pydantic import BaseModel
 
 from cmfa.fluxomics_data.compound import Compound
 from cmfa.fluxomics_data.flux_measurement import FluxMeasurement
@@ -23,7 +18,7 @@ from cmfa.fluxomics_data.mid_measurement import (
     MIDMeasurement,
     MIDMeasurementComponent,
 )
-from cmfa.fluxomics_data.reaction import Reaction, ReactionDirection
+from cmfa.fluxomics_data.reaction import Reaction
 from cmfa.fluxomics_data.reaction_network import ReactionNetwork
 from cmfa.fluxomics_data.tracer import Tracer, TracerExperiment
 
@@ -154,7 +149,7 @@ def parse_reaction_equation(
 
     Returns
     -------
-    Tuple[Dict[str, float], Dict[str, str], ReactionDirection]
+    Tuple[Dict[str, float], Dict[str, str], int]
         A tuple containing:
         - A dictionary of compounds and their stoichiometric coefficients.
         - A dictionary of atom transitions for each compound.
