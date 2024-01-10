@@ -43,7 +43,7 @@ class ReactionNetwork(BaseModel):
     """
 
     id: str
-    name: str = ""
+    name: str = Field("")
     reactions: Set[Reaction] = Field(default_factory=set)
     user_compounds: Set[Compound] = Field(
         default_factory=set, alias="compounds"

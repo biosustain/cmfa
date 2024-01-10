@@ -3,16 +3,13 @@
 These functions should take in a dataframe of measurements and return a
 PreparedData object.
 """
-import csv
 import json
-import os
+import logging
 import re
-from typing import Dict, List, Optional, Set, Tuple
+from pathlib import Path
+from typing import Dict, List, Set, Tuple
 
 import pandas as pd
-import pandera as pa
-from pandera.typing import DataFrame
-from pydantic import BaseModel
 
 from cmfa.fluxomics_data.compound import Compound
 from cmfa.fluxomics_data.flux_measurement import FluxMeasurement
@@ -21,27 +18,22 @@ from cmfa.fluxomics_data.mid_measurement import (
     MIDMeasurement,
     MIDMeasurementComponent,
 )
-from cmfa.fluxomics_data.reaction import Reaction, ReactionDirection
+from cmfa.fluxomics_data.reaction import Reaction
 from cmfa.fluxomics_data.reaction_network import ReactionNetwork
 from cmfa.fluxomics_data.tracer import Tracer, TracerExperiment
 
-FLUX_MEASUREMENTS_FILE = "flux.csv"
-MS_MEASUREMENTS_FILE = "ms_measurements.csv"
-REACTION_FILE = "reactions.csv"
-TRACER_FILE = "tracers.csv"
-MODEL_FILE = "model.json"
-CUR_DIR = os.getcwd()
-DATA_DIR = os.path.join(CUR_DIR, "data", "test_data")
 
-
-def load_tracer_data(file_path: str) -> List[TracerExperiment]:
+def parse_tracer_table(
+    tracer_table: pd.DataFrame,
+) -> Tuple[List[Tracer], List[TracerExperiment]]:
     """
-    Load tracer data from a CSV file into Tracer and TracerExperiment objects.
+    Read tracer data from a CSV file.
 
     Parameters
     ----------
-    file_path : str
-        The path to the CSV file containing the tracer data.
+    tracer_table : pd.DataFrame
+        Result of running pd.read_csv against a suitable file, e.g.
+        https://github.com/biosustain/cmfa/blob/main/data/test_data/tracers.csv
 
     Returns
     -------
@@ -50,48 +42,38 @@ def load_tracer_data(file_path: str) -> List[TracerExperiment]:
     List[TracerExperiment]
         A list of TracerExperiment objects loaded from the file.
     """
-    tracer_experiments = {}
-    tracers = {}
-    with open(file_path, mode="r", encoding="utf-8") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            # Create Tracer object
-            atom_positions = set(
-                map(int, row["atom_ids"].strip("[]").split(","))
+    te_dict = dict()
+    tracers = []
+    for _, row in tracer_table.iterrows():
+        if not any(t.isotope == row["tracer_id"] for t in tracers):
+            new_tracer = Tracer(
+                isotope=row["tracer_id"],
+                compound=row["met_id"],
+                labelled_atom_positions=set(json.loads(row["atom_ids"])),
+                purity=row["ratio"],
             )
-            isotope = row["tracer_id"]
-            if isotope not in tracers:
-                tracers[isotope] = Tracer(
-                    isotope=isotope,
-                    compound=row["met_id"],
-                    labelled_atom_positions=atom_positions,
-                    purity=float(row["ratio"]),
-                )
-            print(tracers)
-            # Add to TracerExperiment
-            exp_id = row["experiment_id"]
-            enrichment = float(row["enrichment"])
-            if exp_id not in tracer_experiments:
-                tracer_experiments[exp_id] = TracerExperiment(
-                    experiment_id=exp_id,
-                    tracer_enrichments={tracers[isotope].isotope: enrichment},
-                )
-            else:
-                tracer_experiments[exp_id].tracer_enrichments[
-                    tracers[isotope].isotope
-                ] = enrichment
-            print(tracer_experiments)
-    return list(tracers.values()), list(tracer_experiments.values())
+            tracers.append(new_tracer)
+        if row["experiment_id"] not in te_dict.keys():
+            te_dict[row["experiment_id"]] = dict()
+        te_dict[row["experiment_id"]][row["tracer_id"]] = row["enrichment"]
+    tracer_experiments = [
+        TracerExperiment(experiment_id=k, tracer_enrichments=v)
+        for k, v in te_dict.items()
+    ]
+    return tracers, tracer_experiments
 
 
-def load_flux_measurements(file_path: str) -> List[FluxMeasurement]:
+def parse_flux_measurements(
+    measurement_table: pd.DataFrame,
+) -> List[FluxMeasurement]:
     """
-    Load flux measurements from a CSV file.
+    Parse flux measurements from a CSV file.
 
     Parameters
     ----------
-    file_path : str
-        The path to the CSV file containing flux measurements.
+    measurement_table : pd.DataFrame
+        Result of running pd.read_csv against a suitable table, e.g.
+        https://github.com/biosustain/cmfa/blob/main/data/test_data/flux.csv
 
     Returns
     -------
@@ -99,72 +81,64 @@ def load_flux_measurements(file_path: str) -> List[FluxMeasurement]:
         A list of FluxMeasurement objects loaded from the file.
     """
     flux_measurements = []
-    with open(file_path, mode="r", encoding="utf-8") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            flux_measurement = FluxMeasurement(
-                experiment_id=row["experiment_id"],
-                reaction_id=row["rxn_id"],
-                replicate=row["replicate"],
-                measured_flux=float(row["flux"]),
-                measurement_error=float(row["flux_std_error"]),
-            )
-            flux_measurements.append(flux_measurement)
-    print(flux_measurements)
-
+    for _, row in measurement_table.iterrows():
+        flux_measurement = FluxMeasurement(
+            experiment_id=row["experiment_id"],
+            reaction_id=row["rxn_id"],
+            replicate=row["replicate"],
+            measured_flux=float(row["flux"]),
+            measurement_error=float(row["flux_std_error"]),
+        )
+        flux_measurements.append(flux_measurement)
     return flux_measurements
 
 
-def load_mid_measurements(file_path: str) -> List[MIDMeasurement]:
+def parse_mid_measurements(
+    measurements_table: pd.DataFrame,
+) -> List[MIDMeasurement]:
     """
     Load MID measurements from a CSV file.
 
     Parameters
     ----------
-    file_path : str
-        The path to the CSV file containing MID measurements.
+    file_path : pd.DataFrame
+        Result of running pd.read_csv against a suitable table, e.g.
+        https://github.com/biosustain/cmfa/blob/main/data/test_data/ms_measurements.csv
 
     Returns
     -------
     List[MIDMeasurement]
         A list of MIDMeasurement objects loaded from the file.
     """
-    measurements = {}
-    with open(file_path, mode="r", encoding="utf-8-sig") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            experiment_id = row["experiment_id"]
-            compound_id = row["met_id"]
-            fragment_id = row["ms_id"]
-
-            # Group components into MIDMeasurements
-            key = (experiment_id, compound_id, fragment_id)
-            if key not in measurements:
-                measurements[key] = MIDMeasurement(
-                    experiment_id=experiment_id,
-                    compound_id=compound_id,
-                    fragment_id=fragment_id,
-                )
-
-            # Create MIDMeasurementComponent
-            component = MIDMeasurementComponent(
-                mass_isotopomer_id=row["mass_isotope"],
+    out = list()
+    measurements_dict = dict()
+    for _, row in measurements_table.iterrows():
+        experiment_id = row["experiment_id"]
+        compound_id = row["met_id"]
+        fragment_id = row["ms_id"]
+        key = (experiment_id, compound_id, fragment_id)
+        if key not in measurements_dict.keys():
+            measurements_dict[key] = {
+                "experiment_id": experiment_id,
+                "compound_id": compound_id,
+                "fragment_id": fragment_id,
+                "measured_components": [],
+            }
+        measurements_dict[key]["measured_components"].append(
+            MIDMeasurementComponent(
+                mass_isotopomer_id=str(row["mass_isotope"]),
                 measured_intensity=float(row["intensity"]),
                 measured_std_dev=float(row["intensity_std_error"]),
             )
-            measurements[key].measured_components.append(component)
-
-    # Normalize intensities for each MIDMeasurement
-    for mid_measurement in measurements.values():
-        print(mid_measurement)
-        mid_measurement.normalize_components()
-
-    return list(measurements.values())
+        )
+    for m in measurements_dict.values():
+        out.append(MIDMeasurement.model_validate(m))
+    return out
 
 
 def parse_reaction_equation(
     equation: str, compounds_set: Set[Compound]
-) -> Tuple[Dict[str, float], Dict[str, str], ReactionDirection]:
+) -> Tuple[Dict[str, float], Dict[str, List[str]], bool]:
     """
     Parse a reaction equation into compounds, atom transitions, and direction.
 
@@ -175,67 +149,62 @@ def parse_reaction_equation(
 
     Returns
     -------
-    Tuple[Dict[str, float], Dict[str, str], ReactionDirection]
+    Tuple[Dict[str, float], Dict[str, str], int]
         A tuple containing:
         - A dictionary of compounds and their stoichiometric coefficients.
         - A dictionary of atom transitions for each compound.
         - The direction of the reaction (ReactionDirection).
     """
-    compounds = {}
+    stoichiometry = {}
     atom_transitions = {}
-    direction = ReactionDirection.REVERSIBLE
 
     # Remove spaces and identify the reaction direction
     equation = equation.replace(" ", "")
     if "<->" in equation:
         lhs, rhs = equation.split("<->")
-        direction = ReactionDirection.REVERSIBLE
+        reversible = True
     elif "->" in equation:
         lhs, rhs = equation.split("->")
-        direction = ReactionDirection.FORWARD
+        reversible = False
     else:
         raise ValueError(
             "Invalid reaction equation format, direction is missing"
         )
-
     # Define the regex pattern for parsing
     pattern = r"(\d*)([A-Za-z]+)\(([^)]+)\)"
 
     # Function to parse each side of the equation
     def parse_side(side: str, sign: int):
         for match in re.finditer(pattern, side):
-            coeff_str, compound, atom_transition = match.groups()
+            coeff_str, compound_id, atom_transition = match.groups()
             coeff = float(coeff_str) if coeff_str else 1.0
             coeff *= sign
-
-            if compound not in compounds:
-                compounds[compound] = 0
-                atom_transitions[compound] = []
-
-            compounds[compound] += coeff
-            atom_transitions[compound].append(atom_transition)
-
-            # Create and add new Compound objects
-            new_compound = Compound(id=compound, carbon_label=atom_transition)
-            compounds_set.add(new_compound)
+            if compound_id not in stoichiometry.keys():
+                stoichiometry[compound_id] = 0
+                atom_transitions[compound_id] = []
+            stoichiometry[compound_id] += coeff
+            atom_transitions[compound_id].append(atom_transition)
 
     # Parse left-hand side and right-hand side
     parse_side(lhs, -1)  # Negative coefficients for LHS
     parse_side(rhs, 1)  # Positive coefficients for RHS
 
-    return compounds, atom_transitions, direction
+    return stoichiometry, atom_transitions, reversible
 
 
-def load_reactions(
-    file_path: str, network_id: str, network_name: Optional[str] = None
+def parse_reaction_table(
+    reaction_table: pd.DataFrame,
+    network_id: str,
+    network_name: str = "",
 ) -> ReactionNetwork:
     """
     Load the reaction network from a CSV file.
 
     Parameters
     ----------
-    file_path : str
-        The path to the CSV file containing the reaction network.
+    reaction_table : pd.DataFrame
+        Result of running pd.read_csv against a suitable table, e.g.
+        https://github.com/biosustain/cmfa/blob/main/data/test_data/reactions.csv
 
     Returns
     -------
@@ -245,31 +214,31 @@ def load_reactions(
     reactions_set: Set[Reaction] = set()
     compounds_set: Set[Compound] = set()
 
-    with open(file_path, mode="r", encoding="utf-8") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            compounds, atom_transitions, direction = parse_reaction_equation(
-                row["rxn_eqn"], compounds_set
-            )
-            reaction = Reaction(
-                id=row["rxn_id"],
-                name=row.get("rxn_name"),
-                stoichiometry=compounds,
-                reversible=direction,
-                atom_transition=atom_transitions,
-            )
-            reactions_set.add(reaction)
-    RN = ReactionNetwork(
+    for _, row in reaction_table.iterrows():
+        stoichiometry, atom_transitions, reversible = parse_reaction_equation(
+            str(row["rxn_eqn"]), compounds_set
+        )
+        reaction = Reaction(
+            id=str(row["rxn_id"]),
+            name=str(row["rxn_id"]),
+            stoichiometry=stoichiometry,
+            reversible=reversible,
+            atom_transition=atom_transitions,
+        )
+        reactions_set.add(reaction)
+    return ReactionNetwork(
         id=network_id,
         name=network_name,
         reactions=reactions_set,
-        compounds=compounds_set,
     )
-    print(RN)
-    return RN
 
 
-def prepare_data() -> FluxomicsDataset:
+def load_dataset_from_csv(
+    tracer_file: Path,
+    flux_measurement_file: Path,
+    mid_measurement_file: Path,
+    reaction_file: Path,
+) -> FluxomicsDataset:
     """
     Load all existing data in a single model.
 
@@ -284,22 +253,17 @@ def prepare_data() -> FluxomicsDataset:
         A fluxomics dataset model that consists of fluxes, tracers, mid measurements, and a reaction network.
 
     """
-    print("Reading raw data...")
-
-    print("\n----------\nloading tracer & experiments\n----------\n")
-    tracers, tracer_experiments = load_tracer_data(f"{DATA_DIR}/{TRACER_FILE}")
-    print("\n----------\nloading flux\n----------\n")
-    flux_measurements = load_flux_measurements(
-        f"{DATA_DIR}/{FLUX_MEASUREMENTS_FILE}"
-    )
-    print("\n----------\nloading mid measurements\n----------\n")
-    mid_measurements = load_mid_measurements(
-        f"{DATA_DIR}/{MS_MEASUREMENTS_FILE}"
-    )
-    print("\n----------\nloading reaction\n----------\n")
-    reaction_network = load_reactions(f"{DATA_DIR}/{REACTION_FILE}", "test")
-    print("\n----------\nmaking fluxomics dataset\n----------\n")
-
+    logging.info("Reading raw data...")
+    tracer_table = pd.read_csv(tracer_file)
+    flux_measurements_table = pd.read_csv(flux_measurement_file)
+    mid_measurements_table = pd.read_csv(mid_measurement_file)
+    reactions_table = pd.read_csv(reaction_file)
+    logging.info("Parsing tables...")
+    tracers, tracer_experiments = parse_tracer_table(tracer_table)
+    flux_measurements = parse_flux_measurements(flux_measurements_table)
+    mid_measurements = parse_mid_measurements(mid_measurements_table)
+    reaction_network = parse_reaction_table(reactions_table, "a")
+    logging.info("Aggregating...")
     FD = FluxomicsDataset(
         reaction_network=reaction_network,
         tracers=tracers,
@@ -307,7 +271,7 @@ def prepare_data() -> FluxomicsDataset:
         flux_measurements=flux_measurements,
         mid_measurements=mid_measurements,
     )
-    print(repr(FD))
+    logging.info("Created fluxomics dataset:\n" + repr(FD))
     return FD
 
 
@@ -327,7 +291,7 @@ def export_fluxomics_dataset_to_json(dataset: FluxomicsDataset, filename: str):
         file.write(json_data)
 
 
-def import_fluxomics_dataset_from_json(filename: str) -> FluxomicsDataset:
+def import_fluxomics_dataset_from_json(filename: Path) -> FluxomicsDataset:
     """
     Import a FluxomicsDataset instance from a JSON file.
 
@@ -345,12 +309,3 @@ def import_fluxomics_dataset_from_json(filename: str) -> FluxomicsDataset:
         json_data = file.read()
         dataset = FluxomicsDataset.model_validate_json(json_data)
         return dataset
-
-
-FD = prepare_data()
-
-export_fluxomics_dataset_to_json(FD, f"{DATA_DIR}/{MODEL_FILE}")
-
-FD2 = import_fluxomics_dataset_from_json(f"{DATA_DIR}/{MODEL_FILE}")
-
-print(FD == FD2)
