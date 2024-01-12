@@ -24,5 +24,10 @@ jobs:
           to: pdf
           path: docs
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdfs
+          path: docs/*.pdf
+
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v3
