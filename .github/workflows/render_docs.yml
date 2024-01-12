@@ -2,7 +2,7 @@ on:
   push:
     branches: main
 
-name: Render and Publish
+name: Render pdfs
 
 jobs:
   build-deploy:
@@ -28,6 +28,3 @@ jobs:
         with:
           name: pdfs
           path: docs/*.pdf
-
-      - name: Download all workflow run artifacts
-        uses: actions/download-artifact@v3
