@@ -10,13 +10,6 @@ from pydantic import BaseModel, Field, computed_field, model_validator
 from cmfa.fluxomics_data.compound import Compound
 
 
-class ReactionDirection(Enum):
-    """A class that defines reversible and forward reactions."""
-
-    REVERSIBLE = 0  # "<->"
-    FORWARD = 1  # "-->"
-
-
 class Reaction(BaseModel):
     """
     A class to represent a reaction in a reaction network.
