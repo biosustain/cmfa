@@ -13,7 +13,7 @@ This document contains summaries of relevant papers relating to 13C metabolic fl
 
 # Elementary Metabolite Units (EMU): a novel framework for modeling isotopic distributions
 
-Reference: @antoniewiczElementaryMetaboliteUnits2007a
+Reference: @antoniewiczElementaryMetaboliteUnits2007
 
 This paper introduces the EMU method for solving the forward MFA problem (i.e.
 finding the mass isotopomer distributions for a given set of fluxes).

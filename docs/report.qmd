@@ -11,7 +11,7 @@ format:
   html: default
   pdf: default
 abstract: |
-  13C Metabolic flux analysis @wiechert13CMetabolicFlux2001a aims to infer the
+  13C Metabolic flux analysis [@wiechert13CMetabolicFlux2001] aims to infer the
   values of metabolic fluxes from the results of isotope labelling experiments
   using linear regression. This paper proposes a new measurement model for use in
   13C MFA that takes into account compositionality and demonstrates this model's
@@ -92,9 +92,7 @@ labelling pattern $r(v)$. For example, assuming a linear model, or equivalently
 optimising $v$ by least squares, yields the following relationship:
 
 $$
-\begin{equation}
-r_obs \sim N(r(v), \Sigma)
-\end{equation}
+r_{obs} \sim N(r(v), \Sigma)
 $$
 
 ## The Elementary Metabolite Unit representation
@@ -145,7 +143,7 @@ limitations of the currently available software:
 
 - There is no previous implementation of compositional regression analysis in
 the context of 13C MFA; all previous implementations apply a linear model either
-explicitly as in [@theorellBeCertainUncertainty2017b, Eq. 3] or more commonly
+explicitly as in [@theorellBeCertainUncertainty2017, Eq. 3] or more commonly
 implicitly through the use of least-squares optimisation.
 - The only software implementing Bayesian 13C MFA is proprietary.
 
