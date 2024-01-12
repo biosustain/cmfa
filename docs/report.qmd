@@ -1,74 +1,168 @@
 ---
 title: "CMFA"
 resource_path: ["../"]
-subtitle: "A report created using bibat version 0.1.12"
-author: "Teddy Groves and Te Chen"
+subtitle: "Compositional Metabolic Flux Analysis"
+author:
+  - name: Teddy Groves
+  - name: Te Chen
 bibliography: bibliography.bib
 reference-location: margin
 format:
   html: default
   pdf: default
+abstract: |
+  13C Metabolic flux analysis @wiechert13CMetabolicFlux2001a aims to infer the
+  values of metabolic fluxes from the results of isotope labelling experiments
+  using linear regression. This paper proposes a new measurement model for use in
+  13C MFA that takes into account compositionality and demonstrates this model's
+  use in the context of a new software application. We show that previous MFA
+  approaches that do not take into account compositionality produce misleading or
+  incomplete results in an illustrative case, whereas our method performs well.
 ---
 
-Write your report here in [pandoc
-markdown](https://pandoc.org/MANUAL.html#pandocs-markdown).
+# Introduction
 
-Create Pdf and Html files based on this document by running `quarto render
-report.qmd` from the project root. If you want to remove some of these formats
-or add a new one, you can do so by editing the `format` field of the
-document's yaml front matter. For example if you want to create a version that
-your collaborators can open in Microsoft Word:
+## Isotopes, isotopomers and mass isotopomers
 
+Isotopes are atoms whose nuclei have the same number of protons but different
+numbers of neutrons. Isotopes instantiate the same element and have very
+similar chemical properties, but have different atomic masses and physical
+properties. For example, Carbon has three naturally occurring isotopes: 12C, 13C
+and 14C, with respective atomic masses 12, 13 and 14. 14C occurs in negligible
+quantities, and the natural ratio of 12C to 13C is known, making carbon suitable
+for isotope labelling experiments where 12C is artificially replaced with 13C.
 
-```{.yaml}
----
-format:
-  html: default
-  pdf: default
-  docx: default
----
-```
+Isotopomers are forms of a compound that differ only by substitution of
+isotopes. For example, [1-13C] glucose, [U-13C] glucose and [2-13C] glucose are
+isotopomers that differ only in the isotopes of the carbon atoms in positions
+1 and 2. In general, for a compound with $A$ occurrences of an atom with $I$
+isotopes, there are $I^A$ corresponding isotopomers. For example, glucose has
+six carbon atoms: assuming only 12C and 13C isotopes are present, there are
+$2^6$ carbon isotopomers.
 
-Refer to entries in `bibliography.bib` using their bibtex keys like
-this: @gelmanBayesianWorkflow2020.
+A mass isotopomer is an equivalence class of isotopomers that share the same
+atomic mass. For example, [1-13C] glucose and [2-13C] glucose each have five
+12C atoms and one 13C atom and therefore belong to the glucose mass isotopomer
+$M_1$ with atomic mass 181.15 g/mol. Mass isotopomers are important because
+measurements can often distinguish between mass isotopomers, but not between
+isotopomers with the same atomic mass.
 
-Include images like this:
+## 13C labelling experiments
 
-![This is an example image](img/example.png)
+## 13C MFA
 
-Note that you can also include links to images in the main project's `plots`
-folder:
+13C MFA considers a known metabolic network consisting of $M$ compounds and
+$N$ reactions with stoichiometric coefficients $S\in\mathbb{R}^{M\times N}$
+representing the amount of each compound consumed and produced by each reaction,
+plus an atom transition map for each reaction. The atom transition map for a
+reaction specifies in what order the potentially-labelled atoms occur in each of
+the reaction's substrates and products.
 
-![This image comes from the main analysis!](../plots/posterior_predictive_comparison.png)
+The remaining input for 13C MFA is as follows:
 
-Include margin notes like this^[I'm a margin note!]
+- Known isotope proportions for some compounds, typically the feed.
 
-Write code blocks like this:
+- Measured fluxes for some reactions, possibly with known measurement error.
 
-```{python}
-def print_hello():
-    print("Hello!")
-print_hello()
-```
+- Measured mass isotopomer proportions for some compounds, possibly with known
+measurement error.
 
-Note that when quarto rendered the document it evaluated the code above and
-printed the results! Quarto supports execution of Python, R and Julia code, and
-can print figures that or even interactive widgets. If you want to include a
-block of code from one of these languages, but don't want quarto to execute it,
-or want to [customise what quarto does with the code in another
-way](https://quarto.org/docs/computations/execution-options.html) make sure the
-first line is `#| `, e.g.:
+The task of inferring the label pattern corresponding to a known flux assignment
+is known as the "forward problem". [REFERENCE] shows how, assuming that the
+network is in a metabolic and isotopic steady state, so that neither the
+concentrations of the compounds nor the distributions of isotopomers are
+changing, it is possible to calculate the isotopomer distribution for each
+compound given a known flux; in this way it is possible to calculate the
+labelling pattern $r(v)$ corresponding to any flux assignment $v$.
 
-```{python}
-#| eval: false
-def print_hello():
-    print("Hello!")
-print_hello()
-```
+Unfortunately, solving the forward problem in terms of isotopomers is of
+limited use for real applications due to the prohibitively large number
+of isotopomers that need to be considered. As a result of this difficulty
+there has been considerable interest in more concise representations of
+the forward problem [REFERNECES]. Below [INTERNAL REFERENCE] we consider
+in detail the "elementary metabolite unit" representation introduced in
+@antoniewiczElementaryMetaboliteUnits2007.
 
-Check out the [quarto guide](https://quarto.org/docs/guide/) for more
-information about how to document your work using quarto.
+The inverse problem of inferring steady state fluxes from measured isotopomer
+distributions can be solved using a statistical model that links these
+measurements with latent parameters representing flux configurations. In
+general, such a model specifies the probability $p(r_{obs}\mid r(v))$ of
+observing labelling pattern $r_{obs}$ given a true flux assignment $v$ and true
+labelling pattern $r(v)$. For example, assuming a linear model, or equivalently
+optimising $v$ by least squares, yields the following relationship:
+
+$$
+\begin{equation}
+r_obs \sim N(r(v), \Sigma)
+\end{equation}
+$$
+
+## The Elementary Metabolite Unit representation
+
+## Compositional Regression
+
+Compositional data is data that is subject to a unit-sum constraint. For
+example, a compositional dataset might record the amount of fat, protein and
+other ingredients in some blocks of butter as proportions of the total mass of
+each block. These proportions are constrained to sum to exactly one.
+
+It is well known that, in general, applying non-compositional data
+analysis methods to compositional data is dangerous because these
+methods can easily misinterpret constraint-induced correlations
+[@aitchisonjStatisticalAnalysisCompositional, Ch. 3].
+
+Compositional regression methods employ constrained measurement distributions
+to analyse compositional data, allowing induced correlations to be accounted
+for naturally. Examples of such distributions include the logistic-normal and
+Dirichlet distributions [@aitchisonjStatisticalAnalysisCompositional, Ch. 3]
+among others.
+
+Compositional regression methods are appropriate for 13C MFA because mass
+isotopomer distribution vectors are compositional. We therefore considered it
+likely that the standard practice of applying non-compositional statistical
+analysis to such data would produce incorrect results.
+
+## Existing solutions
+
+Existing implementations of 13C MFA include:
+
+- INCA
+- 13CFLUX2
+- Metran
+- OpenFlux(2)
+- FluxPyt
+- mfapy
+- Sysmetab
+- iso2flux
+- Flux-P
+- WUFlux
+- OpenMebius
+- influx\_s
+
+See @daiUnderstandingMetabolismFlux2017, @falcoMetabolicFluxAnalysis2022 for
+reviews of available software implementing 13C MFA. We wish to note several
+limitations of the currently available software:
+
+- There is no previous implementation of compositional regression analysis in
+the context of 13C MFA; all previous implementations apply a linear model either
+explicitly as in [@theorellBeCertainUncertainty2017b, Eq. 3] or more commonly
+implicitly through the use of least-squares optimisation.
+- The only software implementing Bayesian 13C MFA is proprietary.
+
+# Methods
+
+## Statistical model
+## Software implementation
+
+# Results
+
+## Case study: toy model
+## Case study: compositional vs non-compositional
+## Case study: real data
+
+# Discussion
+
+## Recommendations
+## Limitations
 
 # References
-
-A list of references should appear here:
