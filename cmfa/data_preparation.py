@@ -6,6 +6,7 @@ PreparedData object.
 import json
 import logging
 import re
+import warnings
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
@@ -137,10 +138,10 @@ def parse_mid_measurements(
 
 
 def parse_reaction_equation(
-    equation: str, compounds_set: Set[Compound]
-) -> Tuple[Dict[str, float], Dict[str, List[str]], bool]:
+    equation: str,
+) -> Tuple[Dict[str, Dict[Tuple[int, ...], float]], bool]:
     """
-    Parse a reaction equation into compounds, atom transitions, and direction.
+    Parse a reaction equation into a dictionary combining stoichiometry and atom transitions.
 
     Parameters
     ----------
@@ -149,15 +150,12 @@ def parse_reaction_equation(
 
     Returns
     -------
-    Tuple[Dict[str, float], Dict[str, str], int]
+    Tuple[Dict[str, Dict[Tuple[int, ...], float]], bool]
         A tuple containing:
-        - A dictionary of compounds and their stoichiometric coefficients.
-        - A dictionary of atom transitions for each compound.
-        - The direction of the reaction (ReactionDirection).
+        - A dictionary mapping compounds to another dictionary with tuples of atom transitions
+          and stoichiometric coefficients.
+        - A boolean indicating if the reaction is reversible.
     """
-    stoichiometry = {}
-    atom_transitions = {}
-
     # Remove spaces and identify the reaction direction
     equation = equation.replace(" ", "")
     if "<->" in equation:
@@ -170,26 +168,35 @@ def parse_reaction_equation(
         raise ValueError(
             "Invalid reaction equation format, direction is missing"
         )
+
+    stoichiometry = {}
     # Define the regex pattern for parsing
-    pattern = r"(\d*)([A-Za-z]+)\(([^)]+)\)"
+    pattern = r"(\d*\.*\d*)\**([A-Za-z0-9]+)(\(([^)]*)\))*"
+    lhs, rhs = re.split("<->|->", equation)
 
     # Function to parse each side of the equation
     def parse_side(side: str, sign: int):
         for match in re.finditer(pattern, side):
-            coeff_str, compound_id, atom_transition = match.groups()
+            coeff_str, compound_id, _, atom_transition = match.groups()
             coeff = float(coeff_str) if coeff_str else 1.0
-            coeff *= sign
-            if compound_id not in stoichiometry.keys():
-                stoichiometry[compound_id] = 0
-                atom_transitions[compound_id] = []
-            stoichiometry[compound_id] += coeff
-            atom_transitions[compound_id].append(atom_transition)
+
+            if compound_id not in stoichiometry:
+                stoichiometry[compound_id] = {}
+
+            if atom_transition not in stoichiometry[compound_id]:
+                stoichiometry[compound_id][atom_transition] = 0
+            elif atom_transition == ():
+                if atom_transition == None:
+                    atom_transition = ""
+                stoichiometry[compound_id][atom_transition] = 0
+
+            stoichiometry[compound_id][atom_transition] += coeff * sign
 
     # Parse left-hand side and right-hand side
     parse_side(lhs, -1)  # Negative coefficients for LHS
     parse_side(rhs, 1)  # Positive coefficients for RHS
 
-    return stoichiometry, atom_transitions, reversible
+    return stoichiometry, reversible
 
 
 def parse_reaction_table(
@@ -212,18 +219,14 @@ def parse_reaction_table(
         A reaction network that consists of reactions and compounds.
     """
     reactions_set: Set[Reaction] = set()
-    compounds_set: Set[Compound] = set()
 
     for _, row in reaction_table.iterrows():
-        stoichiometry, atom_transitions, reversible = parse_reaction_equation(
-            str(row["rxn_eqn"]), compounds_set
-        )
+        stoichiometry, reversible = parse_reaction_equation(str(row["rxn_eqn"]))
         reaction = Reaction(
             id=str(row["rxn_id"]),
             name=str(row["rxn_id"]),
             stoichiometry=stoichiometry,
             reversible=reversible,
-            atom_transition=atom_transitions,
         )
         reactions_set.add(reaction)
     return ReactionNetwork(

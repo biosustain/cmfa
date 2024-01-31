@@ -9,24 +9,71 @@ For the original paper see here:
 
 """
 
-from typing import List
+from typing import Dict, List
 
-from pydantic import BaseModel
+import pandas as pd
 
+from cmfa.fluxomics_data.emu_map import EMUMap, EMUReaction
 from cmfa.fluxomics_data.fluxomics_dataset import FluxomicsDataset
+from cmfa.fluxomics_data.reaction import Reaction
+from cmfa.fluxomics_data.reaction_network import ReactionNetwork
 
 
-class EMUTransition(BaseModel):
-    """Stub for EMUTransition data model."""
+def decompose_network(
+    initial_emu: Dict[str, list[int]], reaction_network: ReactionNetwork
+):
+    """
+    Decompose the Reaction network based on an initial EMU.
 
+    Parameters
+    ----------
+    initial_emu : Dict[str]
+        The starting point of decomposing network for EMUs.
 
-class EMUReaction(BaseModel):
-    """Stub for EMUReaction data model."""
+    reaction_network : ReactionNetwork
+        The reaction network from which EMUs are generated.
 
-
-def emu_decompose(ds: FluxomicsDataset) -> List[EMUReaction]:
-    """Perform EMU decomposition."""
+    Returns
+    -------
+    EMUMap
+    """
     return []
+
+
+def determine_emus(reaction: Reaction) -> List:
+    """
+    Determine the EMUs in a given reaction.
+
+    Parameters
+    ----------
+    reaction : Reaction
+        The reaction to analyze.
+
+    Returns
+    -------
+    List
+        A list of EMUs involved in the reaction.
+    """
+    return []
+
+
+def create_emu_reaction(reaction: Reaction, emu) -> EMUReaction:
+    """
+    Create an EMUReaction based on a reaction and an EMU.
+
+    Parameters
+    ----------
+    reaction : Reaction
+        The reaction from which the EMUReaction is derived.
+    emu
+        The EMU for which the EMUReaction is created.
+
+    Returns
+    -------
+    EMUReaction
+        The created EMUReaction.
+    """
+    return EMUReaction(...)
 
 
 def emu_simulate(df: FluxomicsDataset):

@@ -5,6 +5,7 @@ from copy import deepcopy
 from operator import gt, lt
 from typing import List, Optional, Set
 
+import pandas as pd
 from pydantic import BaseModel, Field, computed_field, model_validator
 
 from cmfa.fluxomics_data.compound import Compound
@@ -93,3 +94,83 @@ class ReactionNetwork(BaseModel):
         if missing != set():
             raise ValueError(f"Missing compounds in the model: {missing}")
         return self
+
+    def reaction_adjacency_matrix(self: "ReactionNetwork") -> pd.DataFrame:
+        """
+        Convert ReactionNetwork into an adjacency matrix.
+
+        Parameters
+        ----------
+        reaction_network : ReactionNetwork
+            The reaction network to convert.
+
+        Returns
+        -------
+        pd.DataFrame
+            The adjacency matrix representing the reaction network. The row are representing reactants, and columns are products. The value is the reaction id.
+        """
+        # Extract all unique compounds
+        all_compounds = set()
+        for reaction in self.reactions:
+            for compound, transitions in reaction.stoichiometry.items():
+                all_compounds.add(compound)
+
+        all_compounds_list = sorted(list(all_compounds))
+        adjacency_matrix = pd.DataFrame(
+            index=all_compounds_list, columns=all_compounds_list
+        )
+
+        for reaction in self.reactions:
+            reactants = {
+                compound
+                for compound, transitions in reaction.stoichiometry.items()
+                if any(coeff < 0 for coeff in transitions.values())
+            }
+            products = {
+                compound
+                for compound, transitions in reaction.stoichiometry.items()
+                if any(coeff > 0 for coeff in transitions.values())
+            }
+
+            print(reactants, products)
+            for reactant in reactants:
+                for product in products:
+                    adjacency_matrix.at[reactant, product] = reaction.id
+
+            # Handle reversible reactions
+            if reaction.reversible:
+                for reactant in reactants:
+                    for product in products:
+                        adjacency_matrix.at[product, reactant] = (
+                            reaction.id + "_rev"
+                        )
+
+        return adjacency_matrix
+
+
+reactions = {
+    Reaction(
+        id="R1",
+        reversible=True,
+        stoichiometry={"A": {"ab": -1}, "B": {"ab": 1}},
+    ),
+    Reaction(
+        id="R2",
+        reversible=False,
+        stoichiometry={"B": {"ab": -1}, "C": {"a": 1, "b": 1}},
+    ),
+    Reaction(
+        id="R3",
+        reversible=False,
+        stoichiometry={
+            "D": {"ab": -1},
+            "A": {"ab": 0.5},
+            "B": {"ab": 0.5},
+            "Z": {"": 1},
+        },
+    ),
+}
+
+reaction_network = ReactionNetwork(id="a", reactions=reactions)
+matrix = reaction_network.reaction_adjacency_matrix()
+print(matrix)
