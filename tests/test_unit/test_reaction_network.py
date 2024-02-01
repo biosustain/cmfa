@@ -21,23 +21,27 @@ EXAMPLE_NETWORK_INPUT = {
     "reactions": {
         Reaction(
             id="v1",
-            stoichiometry={"A": {"abc": -1}, "B": {"abc": 1}},
+            stoichiometry_input={"A": {"abc": -1}, "B": {"abc": 1}},
         ),
         Reaction(
             id="v2",
-            stoichiometry={"B": {"abc": -1}, "D": {"abc": 1}},
+            stoichiometry_input={"B": {"abc": -1}, "D": {"abc": 1}},
         ),
         Reaction(
             id="v3",
-            stoichiometry={"D": {"abc": -1}, "B": {"abc": 1}},
+            stoichiometry_input={"D": {"abc": -1}, "B": {"abc": 1}},
         ),
         Reaction(
             id="v4",
-            stoichiometry={"B": {"abc": -1}, "C": {"ab": 1}, "E": {"c": 1}},
+            stoichiometry_input={
+                "B": {"abc": -1},
+                "C": {"ab": 1},
+                "E": {"c": 1},
+            },
         ),
         Reaction(
             id="v5",
-            stoichiometry={
+            stoichiometry_input={
                 "B": {"abc": -1},
                 "C": {"de": -1},
                 "D": {"bcd": 1},
@@ -47,7 +51,7 @@ EXAMPLE_NETWORK_INPUT = {
         ),
         Reaction(
             id="v6",
-            stoichiometry={"D": {"abc": -1}, "F": {"abc": 1}},
+            stoichiometry_input={"D": {"abc": -1}, "F": {"abc": 1}},
         ),
     },
 }
@@ -56,7 +60,6 @@ EXAMPLE_NETWORK_INPUT = {
 def test_example_network():
     """Test that loading a reaction networks works in a simple case."""
     rn = ReactionNetwork.model_validate(EXAMPLE_NETWORK_INPUT)
-    assert rn.reaction_adjacency_matrix.loc[("D", "abc"), ("B", "abc")] == [
-        "v2_rev",
-        "v3",
-    ]
+    assert set(
+        rn.reaction_adjacency_matrix.loc[("D", "abc"), ("B", "abc")]
+    ) == {"v2_rev", "v3"}

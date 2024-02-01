@@ -140,7 +140,7 @@ def parse_mid_measurements(
 
 def parse_reaction_equation(
     equation: str,
-) -> Tuple[Dict[str, Dict[Tuple[int, ...], float]], bool]:
+) -> Tuple[Dict[str, Dict[str, float]], bool]:
     """
     Parse a reaction equation into a dictionary combining stoichiometry and atom transitions.
 
@@ -226,7 +226,7 @@ def parse_reaction_table(
         reaction = Reaction(
             id=str(row["rxn_id"]),
             name=str(row["rxn_id"]),
-            stoichiometry=stoichiometry,
+            stoichiometry_input=stoichiometry,
             reversible=reversible,
         )
         reactions_set.add(reaction)

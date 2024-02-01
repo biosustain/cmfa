@@ -97,11 +97,8 @@ class Reaction(BaseModel):
     id: str
     name: Optional[str] = None
     reversible: bool = True
-    stoichiometry_input: Dict[str, Dict[str, float]] = Field(
-        alias="stoichiometry"
-    )
+    stoichiometry_input: Dict[str, Dict[str, float]]
 
-    @computed_field
     @property
     def stoichiometry(self) -> ReactionStoichiometry:
         """Get the stoichiometry in the right form."""

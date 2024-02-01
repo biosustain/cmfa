@@ -11,6 +11,7 @@ from pydantic import (
     ConfigDict,
     Field,
     computed_field,
+    field_serializer,
     model_validator,
 )
 
@@ -102,7 +103,6 @@ class ReactionNetwork(BaseModel):
             raise ValueError(f"Missing compounds in the model: {missing}")
         return self
 
-    @computed_field
     @property
     def reaction_adjacency_matrix(self: "ReactionNetwork") -> pd.DataFrame:
         """
