@@ -6,7 +6,13 @@ from operator import gt, lt
 from typing import List, Optional, Set
 
 import pandas as pd
-from pydantic import BaseModel, Field, computed_field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    model_validator,
+)
 
 from cmfa.fluxomics_data.compound import Compound
 from cmfa.fluxomics_data.reaction import Reaction
@@ -49,6 +55,7 @@ class ReactionNetwork(BaseModel):
     user_compounds: Set[Compound] = Field(
         default_factory=set, alias="compounds"
     )
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __repr__(self):
         """Return a string representation of the reaction network."""
@@ -95,6 +102,8 @@ class ReactionNetwork(BaseModel):
             raise ValueError(f"Missing compounds in the model: {missing}")
         return self
 
+    @computed_field
+    @property
     def reaction_adjacency_matrix(self: "ReactionNetwork") -> pd.DataFrame:
         """
         Convert ReactionNetwork into an adjacency matrix.
@@ -112,14 +121,12 @@ class ReactionNetwork(BaseModel):
         # Extract all unique compounds
         all_compounds = set()
         for reaction in self.reactions:
-            for compound, transitions in reaction.stoichiometry.items():
+            for compound in reaction.stoichiometry.keys():
                 all_compounds.add(compound)
-
         all_compounds_list = sorted(list(all_compounds))
         adjacency_matrix = pd.DataFrame(
             index=all_compounds_list, columns=all_compounds_list
         )
-
         for reaction in self.reactions:
             reactants = {
                 compound
@@ -131,8 +138,6 @@ class ReactionNetwork(BaseModel):
                 for compound, transitions in reaction.stoichiometry.items()
                 if any(coeff > 0 for coeff in transitions.values())
             }
-
-            print(reactants, products)
             for reactant in reactants:
                 for product in products:
                     adjacency_matrix.at[reactant, product] = reaction.id
@@ -144,7 +149,6 @@ class ReactionNetwork(BaseModel):
                         adjacency_matrix.at[product, reactant] = (
                             reaction.id + "_rev"
                         )
-
         return adjacency_matrix
 
 
@@ -171,6 +175,8 @@ reactions = {
     ),
 }
 
-reaction_network = ReactionNetwork(id="a", reactions=reactions)
-matrix = reaction_network.reaction_adjacency_matrix()
+reaction_network = ReactionNetwork(
+    name="my_network", id="a", reactions=reactions
+)
+matrix = reaction_network.reaction_adjacency_matrix
 print(matrix)
