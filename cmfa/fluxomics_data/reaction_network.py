@@ -121,62 +121,46 @@ class ReactionNetwork(BaseModel):
         # Extract all unique compounds
         all_compounds = set()
         for reaction in self.reactions:
-            for compound in reaction.stoichiometry.keys():
-                all_compounds.add(compound)
-        all_compounds_list = sorted(list(all_compounds))
-        adjacency_matrix = pd.DataFrame(
-            index=all_compounds_list, columns=all_compounds_list
+            for cpd in reaction.stoichiometry.keys():
+                all_compounds.add(cpd)
+        ix = pd.MultiIndex.from_tuples(
+            set(
+                [
+                    (cpd, pat.pattern_string)
+                    for r in self.reactions
+                    for cpd, tr in r.stoichiometry.items()
+                    for pat in tr.keys()
+                ]
+            )
+        ).sort_values()
+        adj = pd.DataFrame("", index=ix, columns=ix).apply(
+            lambda c: c.str.split()
         )
         for reaction in self.reactions:
-            reactants = {
-                compound
-                for compound, transitions in reaction.stoichiometry.items()
-                if any(coeff < 0 for coeff in transitions.values())
+            rid = reaction.id
+            rid_rev = rid + "_rev"
+            stoich = reaction.stoichiometry
+            substrates = {
+                c for c, t in stoich.items() if any(s < 0 for s in t.values())
             }
             products = {
-                compound
-                for compound, transitions in reaction.stoichiometry.items()
-                if any(coeff > 0 for coeff in transitions.values())
+                c for c, t in stoich.items() if any(s > 0 for s in t.values())
             }
-            for reactant in reactants:
-                for product in products:
-                    adjacency_matrix.at[reactant, product] = reaction.id
-
-            # Handle reversible reactions
-            if reaction.reversible:
-                for reactant in reactants:
-                    for product in products:
-                        adjacency_matrix.at[product, reactant] = (
-                            reaction.id + "_rev"
-                        )
-        return adjacency_matrix
-
-
-reactions = {
-    Reaction(
-        id="R1",
-        reversible=True,
-        stoichiometry={"A": {"ab": -1}, "B": {"ab": 1}},
-    ),
-    Reaction(
-        id="R2",
-        reversible=False,
-        stoichiometry={"B": {"ab": -1}, "C": {"a": 1, "b": 1}},
-    ),
-    Reaction(
-        id="R3",
-        reversible=False,
-        stoichiometry={
-            "D": {"ab": -1},
-            "A": {"ab": 0.5},
-            "B": {"ab": 0.5},
-            "Z": {"": 1},
-        },
-    ),
-}
-
-reaction_network = ReactionNetwork(
-    name="my_network", id="a", reactions=reactions
-)
-matrix = reaction_network.reaction_adjacency_matrix
-print(matrix)
+            for sub in substrates:
+                for spat in stoich[sub].keys():
+                    for prod in products:
+                        for ppat in stoich[prod].keys():
+                            intersection = set(spat.pattern_string) & set(
+                                ppat.pattern_string
+                            )
+                            if len(intersection) > 0:
+                                adj.at[
+                                    (sub, spat.pattern_string),
+                                    (prod, ppat.pattern_string),
+                                ].append(rid)
+                                if reaction.reversible:
+                                    adj.at[
+                                        (prod, ppat.pattern_string),
+                                        (sub, spat.pattern_string),
+                                    ].append(rid_rev)
+        return pd.DataFrame(adj)

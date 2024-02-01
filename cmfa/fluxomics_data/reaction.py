@@ -54,9 +54,13 @@ class AtomPattern(BaseModel):
         """
         return tuple(ord(l) - ord("a") + 1 for l in self.pattern_string)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Hash an atom pattern."""
         return hash(self.pattern_string)
+
+    def __repr__(self) -> str:
+        """Hash an atom pattern."""
+        return self.pattern_string
 
 
 class Reaction(BaseModel):
@@ -98,6 +102,7 @@ class Reaction(BaseModel):
     )
 
     @computed_field
+    @property
     def stoichiometry(self) -> ReactionStoichiometry:
         """Get the stoichiometry in the right form."""
         return {

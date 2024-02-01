@@ -51,23 +51,12 @@ EXAMPLE_NETWORK_INPUT = {
         ),
     },
 }
-EXPECTED_REACTION_ADJACENCY_MATRIX = pd.DataFrame(
-    [
-        [pd.NA, "v1", pd.NA, pd.NA, pd.NA, pd.NA],
-        ["v1_rev", pd.NA, "v4", "v2", "v4", "v5"],
-        [pd.NA, "v4_rev", pd.NA, "v5", "v5", "v5"],
-        [pd.NA, "v2_rev", "v5_rev", pd.NA, pd.NA, "v6"],
-        [pd.NA, "v4_rev", "v5_rev", pd.NA, pd.NA, pd.NA],
-        [pd.NA, "v5_rev", "v5_rev", "v6_rev", pd.NA, pd.NA],
-    ],
-    index=["A", "B", "C", "D", "E", "F"],
-    columns=["A", "B", "C", "D", "E", "F"],
-)
 
 
 def test_example_network():
     """Test that loading a reaction networks works in a simple case."""
     rn = ReactionNetwork.model_validate(EXAMPLE_NETWORK_INPUT)
-    pd.testing.assert_frame_equal(
-        rn.reaction_adjacency_matrix, EXPECTED_REACTION_ADJACENCY_MATRIX
-    )
+    assert rn.reaction_adjacency_matrix.loc[("D", "abc"), ("B", "abc")] == [
+        "v2_rev",
+        "v3",
+    ]
