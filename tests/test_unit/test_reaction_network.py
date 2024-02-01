@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 
+import pandas as pd
 import pytest
 
 from cmfa.fluxomics_data.compound import Compound
@@ -20,39 +21,37 @@ EXAMPLE_NETWORK_INPUT = {
     "reactions": {
         Reaction(
             id="v1",
-            stoichiometry={"A": -1, "B": 1},
-            atom_transition={"A": ["abc"], "B": ["abc"]},
+            stoichiometry_input={"A": {"abc": -1}, "B": {"abc": 1}},
         ),
         Reaction(
             id="v2",
-            stoichiometry={"B": -1, "D": 1},
-            atom_transition={"B": ["abc"], "D": ["abc"]},
+            stoichiometry_input={"B": {"abc": -1}, "D": {"abc": 1}},
         ),
         Reaction(
             id="v3",
-            stoichiometry={"D": -1, "B": 1},
-            atom_transition={"D": ["abc"], "B": ["abc"]},
+            stoichiometry_input={"D": {"abc": -1}, "B": {"abc": 1}},
         ),
         Reaction(
             id="v4",
-            stoichiometry={"B": -1, "C": 1, "E": 1},
-            atom_transition={"B": ["abc"], "C": ["ab"], "E": ["c"]},
+            stoichiometry_input={
+                "B": {"abc": -1},
+                "C": {"ab": 1},
+                "E": {"c": 1},
+            },
         ),
         Reaction(
             id="v5",
-            stoichiometry={"B": -1, "C": -1, "D": 1, "E": 1, "F": 1},
-            atom_transition={
-                "B": ["abc"],
-                "C": ["de"],
-                "D": ["bcd"],
-                "E": ["a"],
-                "F": ["e"],
+            stoichiometry_input={
+                "B": {"abc": -1},
+                "C": {"de": -1},
+                "D": {"bcd": 1},
+                "E": {"a": 1},
+                "F": {"e": 1},
             },
         ),
         Reaction(
             id="v6",
-            stoichiometry={"D": -1, "F": 1},
-            atom_transition={"D": ["abc"], "F": ["abc"]},
+            stoichiometry_input={"D": {"abc": -1}, "F": {"abc": 1}},
         ),
     },
 }
@@ -60,4 +59,7 @@ EXAMPLE_NETWORK_INPUT = {
 
 def test_example_network():
     """Test that loading a reaction networks works in a simple case."""
-    ReactionNetwork.model_validate(EXAMPLE_NETWORK_INPUT)
+    rn = ReactionNetwork.model_validate(EXAMPLE_NETWORK_INPUT)
+    assert set(
+        rn.reaction_adjacency_matrix.loc[("D", "abc"), ("B", "abc")]
+    ) == {"v2_rev", "v3"}

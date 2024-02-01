@@ -1,4 +1,5 @@
 """fluxomics_dataset.py includes the classes of a fluxomics dataset."""
+
 from typing import List
 
 from pydantic import BaseModel, field_validator

@@ -5,7 +5,15 @@ from copy import deepcopy
 from operator import gt, lt
 from typing import List, Optional, Set
 
-from pydantic import BaseModel, Field, computed_field, model_validator
+import pandas as pd
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_serializer,
+    model_validator,
+)
 
 from cmfa.fluxomics_data.compound import Compound
 from cmfa.fluxomics_data.reaction import Reaction
@@ -48,6 +56,7 @@ class ReactionNetwork(BaseModel):
     user_compounds: Set[Compound] = Field(
         default_factory=set, alias="compounds"
     )
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __repr__(self):
         """Return a string representation of the reaction network."""
@@ -93,3 +102,65 @@ class ReactionNetwork(BaseModel):
         if missing != set():
             raise ValueError(f"Missing compounds in the model: {missing}")
         return self
+
+    @property
+    def reaction_adjacency_matrix(self: "ReactionNetwork") -> pd.DataFrame:
+        """
+        Convert ReactionNetwork into an adjacency matrix.
+
+        Parameters
+        ----------
+        reaction_network : ReactionNetwork
+            The reaction network to convert.
+
+        Returns
+        -------
+        pd.DataFrame
+            The adjacency matrix representing the reaction network. The row are representing reactants, and columns are products. The value is the reaction id.
+        """
+        # Extract all unique compounds
+        all_compounds = set()
+        for reaction in self.reactions:
+            for cpd in reaction.stoichiometry.keys():
+                all_compounds.add(cpd)
+        ix = pd.MultiIndex.from_tuples(
+            set(
+                [
+                    (cpd, pat.pattern_string)
+                    for r in self.reactions
+                    for cpd, tr in r.stoichiometry.items()
+                    for pat in tr.keys()
+                ]
+            )
+        ).sort_values()
+        adj = pd.DataFrame("", index=ix, columns=ix).apply(
+            lambda c: c.str.split()
+        )
+        for reaction in self.reactions:
+            rid = reaction.id
+            rid_rev = rid + "_rev"
+            stoich = reaction.stoichiometry
+            substrates = {
+                c for c, t in stoich.items() if any(s < 0 for s in t.values())
+            }
+            products = {
+                c for c, t in stoich.items() if any(s > 0 for s in t.values())
+            }
+            for sub in substrates:
+                for spat in stoich[sub].keys():
+                    for prod in products:
+                        for ppat in stoich[prod].keys():
+                            intersection = set(spat.pattern_string) & set(
+                                ppat.pattern_string
+                            )
+                            if len(intersection) > 0:
+                                adj.at[
+                                    (sub, spat.pattern_string),
+                                    (prod, ppat.pattern_string),
+                                ].append(rid)
+                                if reaction.reversible:
+                                    adj.at[
+                                        (prod, ppat.pattern_string),
+                                        (sub, spat.pattern_string),
+                                    ].append(rid_rev)
+        return pd.DataFrame(adj)
