@@ -2,65 +2,13 @@
 
 import hashlib
 import warnings
-from typing import Dict, Optional
+from typing import Optional
 
-from pydantic import (
-    BaseModel,
-    Field,
-    computed_field,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, field_validator, model_validator
 
-from cmfa.fluxomics_data.compound import Compound
+from cmfa.fluxomics_data.compound import AtomPattern, Compound
 
-type ReactionStoichiometry = Dict[str, Dict[AtomPattern, float]]
-
-
-class AtomPattern(BaseModel):
-    """A string representing the order of labellable atoms in a compound.
-
-    For example "abcd".
-
-    Atom patterns are understood in the context of a reaction. For example if
-    the reaction turns compound A with atom pattern "ab" into compound B with
-    atom pattern "ba", that means that the reaction swaps the order of the two
-    labellable atoms in these compounds.
-
-    Note that atom patterns rely on alphabetical ordering, so only alphabetic
-    characters are allowed, and that each atom is represented by a single unique
-    character. For simplicity upper case letters are also not allowed.
-
-    Atom patterns can also be represented as tuples of integers.
-
-    """
-
-    pattern_string: str = Field(alias="pattern")
-
-    @field_validator("pattern_string")
-    def check_characters(cls, v: str) -> str:
-        """Check that the atom pattern is valid."""
-        for char in v:
-            assert char.isalpha(), f"Found non-alphabetic character {char}."
-            assert not char.isupper(), f"Found upper case character {char}."
-            assert v.count(char) == 1, f"Found duplicate character {char}."
-        return v
-
-    @computed_field
-    def pattern_tuple(self) -> tuple[int, ...]:
-        """Convert atom pattern to integer representation.
-
-        e.g. "abdc" will become (1,2,4,3).
-        """
-        return tuple(ord(l) - ord("a") + 1 for l in self.pattern_string)
-
-    def __hash__(self) -> int:
-        """Hash an atom pattern."""
-        return hash(self.pattern_string)
-
-    def __repr__(self) -> str:
-        """Hash an atom pattern."""
-        return self.pattern_string
+type ReactionStoichiometry = dict[str, dict[AtomPattern, float]]
 
 
 class Reaction(BaseModel):
@@ -73,7 +21,7 @@ class Reaction(BaseModel):
         A unique identifier for the reaction.
     name : str
         The name of the reaction.
-    stoichiometry_input : Dict[str, float]
+    stoichiometry_input : dict[str, float]
         A dictionary with compound names as keys, whose values are maps of atom
         patterns to stoichiometric coefficients.
 
@@ -97,7 +45,7 @@ class Reaction(BaseModel):
     id: str
     name: Optional[str] = None
     reversible: bool = True
-    stoichiometry_input: Dict[str, Dict[str, float]]
+    stoichiometry_input: dict[str, dict[str, float]]
 
     @property
     def stoichiometry(self) -> ReactionStoichiometry:
@@ -115,7 +63,7 @@ class Reaction(BaseModel):
         return (
             f"Reaction id={self.id}, name={self.name},"
             f"stoichiometry={self.stoichiometry},"
-            f"direction={self.reversible}, "
+            f"reversible={self.reversible}, "
         )
 
     def __hash__(self) -> int:
@@ -124,8 +72,8 @@ class Reaction(BaseModel):
 
     @field_validator("stoichiometry_input")
     def check_stoichiometry(
-        cls, v: Dict[str, Dict[str, float]]
-    ) -> Dict[str, Dict[str, float]]:
+        cls, v: dict[str, dict[str, float]]
+    ) -> dict[str, dict[str, float]]:
         """Check that the stoichiometry input is non-empty."""
         assert len(v.keys()) > 1, "Stoichiometry must be non-empty."
         return v
@@ -137,7 +85,6 @@ class Reaction(BaseModel):
         for compound, transitions in self.stoichiometry.items():
             for transition, coeff in transitions.items():
                 if coeff < 0:  # Reactant
-                    print(sum(transition.pattern_tuple) * abs(coeff))
                     lhs_atoms += sum(transition.pattern_tuple) * abs(coeff)
                 else:  # Product
                     rhs_atoms += sum(transition.pattern_tuple) * abs(coeff)

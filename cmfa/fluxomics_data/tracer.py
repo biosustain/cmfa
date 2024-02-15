@@ -1,7 +1,5 @@
 """tracer.py includes the description of tracers and experiments."""
 
-from typing import Dict
-
 from pydantic import BaseModel, Field, PositiveInt, field_validator
 
 
@@ -54,13 +52,13 @@ class TracerExperiment(BaseModel):
     experiment_id:
         Identifier for the experiment.
 
-    tracer_enrichments: Dict[str, float]
+    tracer_enrichments: dict[str, float]
         A dictionary of tracers id and enrichment value, e.g. 90% of [1,2]A and 10% of [2]B is in the medium.
 
     """
 
     experiment_id: str
-    tracer_enrichments: Dict[str, float] = dict()
+    tracer_enrichments: dict[str, float] = dict()
 
     def __repr__(self):
         """Return a string representation of the TracerExperiment instance."""

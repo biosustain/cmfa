@@ -3,7 +3,7 @@
 import warnings
 from copy import deepcopy
 from operator import gt, lt
-from typing import List, Optional, Set
+from typing import List, Optional
 
 import pandas as pd
 from pydantic import (
@@ -11,7 +11,6 @@ from pydantic import (
     ConfigDict,
     Field,
     computed_field,
-    field_serializer,
     model_validator,
 )
 
@@ -33,9 +32,9 @@ class ReactionNetwork(BaseModel):
         A unique identifier for the model.
     name : Optional[str], default: None
         The name of the model, optional.
-    reactions : Set[Reaction], default: empty set
+    reactions : set[Reaction], default: empty set
         A set of reactions in the model. Ensures that each reaction is unique.
-    compounds : Set[Compound], default: empty set
+    compounds : set[Compound], default: empty set
         A set of compounds in the model. Ensures that each compound is unique.
 
     Attributes
@@ -44,16 +43,16 @@ class ReactionNetwork(BaseModel):
         Unique identifier of the reaction network.
     name : Optional[str]
         Name of the reaction network.
-    reactions : Set[Reaction]
-        Set of reactions in the network.
-    compounds : Set[Compound]
-        Set of compounds in the network.
+    reactions : set[Reaction]
+        set of reactions in the network.
+    compounds : set[Compound]
+        set of compounds in the network.
     """
 
     id: str
     name: str = Field("")
-    reactions: Set[Reaction] = Field(default_factory=set)
-    user_compounds: Set[Compound] = Field(
+    reactions: set[Reaction] = Field(default_factory=set)
+    user_compounds: set[Compound] = Field(
         default_factory=set, alias="compounds"
     )
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -77,7 +76,7 @@ class ReactionNetwork(BaseModel):
 
     @computed_field
     @property
-    def compounds(self: "ReactionNetwork") -> Set[Compound]:
+    def compounds(self: "ReactionNetwork") -> set[Compound]:
         """Add the compounds field."""
         compounds = {Compound.model_validate(c) for c in self.user_compounds}
         for reaction in self.reactions:
@@ -103,7 +102,7 @@ class ReactionNetwork(BaseModel):
             raise ValueError(f"Missing compounds in the model: {missing}")
         return self
 
-    @property
+    # @property
     def reaction_adjacency_matrix(self: "ReactionNetwork") -> pd.DataFrame:
         """
         Convert ReactionNetwork into an adjacency matrix.
@@ -131,14 +130,14 @@ class ReactionNetwork(BaseModel):
                     for cpd, tr in r.stoichiometry.items()
                     for pat in tr.keys()
                 ]
-            )
+            ),
+            names=["compound", "pattern"],
         ).sort_values()
         adj = pd.DataFrame("", index=ix, columns=ix).apply(
             lambda c: c.str.split()
         )
         for reaction in self.reactions:
             rid = reaction.id
-            rid_rev = rid + "_rev"
             stoich = reaction.stoichiometry
             substrates = {
                 c for c, t in stoich.items() if any(s < 0 for s in t.values())
@@ -154,13 +153,19 @@ class ReactionNetwork(BaseModel):
                                 ppat.pattern_string
                             )
                             if len(intersection) > 0:
-                                adj.at[
-                                    (sub, spat.pattern_string),
-                                    (prod, ppat.pattern_string),
-                                ].append(rid)
-                                if reaction.reversible:
+                                if not reaction.reversible:
+                                    adj.at[
+                                        (sub, spat.pattern_string),
+                                        (prod, ppat.pattern_string),
+                                    ].append(rid)
+                                else:
+                                    adj.at[
+                                        (sub, spat.pattern_string),
+                                        (prod, ppat.pattern_string),
+                                    ].append(f"{rid}_f")
                                     adj.at[
                                         (prod, ppat.pattern_string),
                                         (sub, spat.pattern_string),
-                                    ].append(rid_rev)
+                                    ].append(f"{rid}_r")
+
         return pd.DataFrame(adj)

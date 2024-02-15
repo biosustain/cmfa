@@ -313,3 +313,24 @@ def import_fluxomics_dataset_from_json(filename: Path) -> FluxomicsDataset:
         json_data = file.read()
         dataset = FluxomicsDataset.model_validate_json(json_data)
         return dataset
+
+
+def extract_atom_pattern(compound_pattern: str):
+    """Extract the atom pattern from a compound pattern string.
+
+    Parameters
+    ----------
+    compound_pattern : str
+        The compound pattern string, e.g., "Glu(abcde)".
+
+    Returns
+    -------
+    str
+        The extracted atom pattern, e.g., "abcde".
+    """
+    match = re.search(r"(.+)\((.+)\)", compound_pattern)
+    if match:
+        compound, pattern = match.groups()
+        return compound, pattern
+    else:
+        raise ValueError(f"No atom pattern found in the input: {compound}")
