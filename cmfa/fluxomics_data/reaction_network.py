@@ -64,6 +64,16 @@ class ReactionNetwork(BaseModel):
             f"num_reactions={len(self.reactions)}, num_compounds={len(self.compounds)}>"
         )
 
+    def __getattr__(self, item):
+        """Return a reaction object based on its reaction ID."""
+        for reaction in self.reactions:
+            if reaction.id == item:
+                return reaction
+        # If no reaction found with the ID, raise an AttributeError
+        raise AttributeError(
+            f"Reaction with ID {item} not found in the network."
+        )
+
     def __eq__(self, other):
         """Check equality with another ReactionNetwork instance."""
         if not isinstance(other, ReactionNetwork):
@@ -162,10 +172,28 @@ class ReactionNetwork(BaseModel):
                                     adj.at[
                                         (sub, spat.pattern_string),
                                         (prod, ppat.pattern_string),
-                                    ].append(f"{rid}_f")
+                                    ].append(f"{rid}")
                                     adj.at[
                                         (prod, ppat.pattern_string),
                                         (sub, spat.pattern_string),
-                                    ].append(f"{rid}_r")
+                                    ].append(f"{rid}_rev")
 
         return pd.DataFrame(adj)
+
+    def find_reaction_by_id(self, reaction_id: str) -> Reaction:
+        """Return a reaction by its ID."""
+        for reaction in self.reactions:
+            if reaction.id == reaction_id:
+                return reaction
+        raise ValueError(
+            f"Reaction with ID {reaction_id} not found in the network."
+        )
+
+    def find_compound_by_id(self, compound_id: str) -> Compound:
+        """Return a compound by its ID."""
+        for compound in self.compounds:
+            if compound.id == compound_id:
+                return compound
+        raise ValueError(
+            f"Compound with ID {compound_id} not found in the network."
+        )
