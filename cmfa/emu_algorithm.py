@@ -13,106 +13,151 @@ from collections import deque
 
 import pandas as pd
 
-from cmfa.fluxomics_data.compound import AtomPattern
+from cmfa.fluxomics_data.emu import EMU, EMUReaction
 from cmfa.fluxomics_data.fluxomics_dataset import FluxomicsDataset
-from cmfa.fluxomics_data.reaction import Reaction
+from cmfa.fluxomics_data.reaction import AtomPattern, Reaction
 from cmfa.fluxomics_data.reaction_network import ReactionNetwork
 
 
 def decompose_network(
-    target_compound: str, reaction_network: ReactionNetwork
+    target_EMU: EMU, reaction_network: ReactionNetwork
 ) -> pd.DataFrame:
-    """
-    Decompose the Reaction network based on an initial EMU.
-
-    Parameters
-    ----------
-    initial_compound:
-        The starting compound id` of decomposing network for EMUs.
-
-    reaction_network : ReactionNetwork
-        The reaction network from which EMUs are generated.
-
-    Returns
-    -------
-    EMUMap: pd.DataFrame
-
-    """
+    """Return a EMU map based on the target compound from the reaction network."""
     MAM = reaction_network.reaction_adjacency_matrix()
-
-    queue = deque([target_compound])
+    queue = deque([target_EMU])
     visited = set()
     emu_maps = {}
 
     while queue:
         # Keep poping new EMU added from previous round.
         cur_emu = queue.popleft()
-        print(f"Current EMU: {cur_emu}, have visited {visited}")
+        # print(f"Current EMU: {cur_emu.compound}, have visited {visited}")
         if cur_emu in visited:
             continue
         visited.add(cur_emu)
 
-        # Pattern matching
-        _cur_emu = EMU(
-            id="_".join(cur_emu),
-            compound=cur_emu[0],
-            pattern=AtomPattern(pattern=cur_emu[1]),
-        )
-
-        emu_size = _cur_emu.size
+        # Add new EMU map if the EMU size is not added
+        emu_size = cur_emu.size
         if emu_size not in emu_maps:
             emu_maps[emu_size] = {}
 
         # Find the reaction that is participated in the current emu
-        col = MAM[cur_emu]
-        reactants = col[col.apply(lambda x: len(x) > 0)]
+        participated_reactions = _find_participated_reactions(cur_emu, MAM)
+        # print(participated_reactions)
+        new_map = []
+        for r in participated_reactions:
+            # Handle forward and reverse case
+            if r.endswith("_rev"):
+                new_emu_reactions, new_emus = _atom_mapping_to_reaction(
+                    cur_emu,
+                    reaction_network.find_reaction_by_id(r[:-4]),
+                    reverse=True,
+                )
+            else:
+                new_emu_reactions, new_emus = _atom_mapping_to_reaction(
+                    cur_emu,
+                    reaction_network.find_reaction_by_id(r),
+                    reverse=False,
+                )
+            print(new_emu_reactions)
+            new_map.append(new_emu_reactions)
+            # TODO: Find equivalent EMUs
+            for e in new_emus:
+                if e not in visited and e not in queue:
+                    queue.append(e)
 
-        # Finding multiple reactants
-        _reactants_str = reactants.apply(lambda x: str(x))
-        multi_reactants = _reactants_str.duplicated(keep=False)
-
-        if multi_reactants.any():
-            # Use the duplicates mask to filter the original Series and get the multi-index keys
-            duplicate_keys = reactants[multi_reactants].index.tolist()
-
-            overlap_pat = _find_matchable_parts(duplicate_keys, cur_emu[1])
-
-            print("Duplicate multi-index keys:", overlap_pat)
-        else:
-            print("No duplicates found.")
-
-        # Add reactants to the queue and emu map
-        print(
-            reactants,
-            "\n",
-        )
-        for i in reactants.index:
-            print(i)
-            match_cpd_pat = [key for key in MAM.index if key[0] == i[0]]
-            for m in match_cpd_pat:
-                queue.append(tuple(m))
-            # Add a condition to stop when the number of atoms are not matching -> Stop when this happens(B23 + C1)
-        for next_emu in reactants:
-            emu_maps[emu_size].setdefault(cur_emu, []).append(next_emu)
+        emu_maps[emu_size].setdefault(cur_emu, []).append(new_map)
 
     return emu_maps
 
 
-def _find_matchable_parts(keys, match):
-    """Return new EMU reactants that maps partial atoms if available."""
-    new_keys = []
-    for key in keys:
-        # Unpack the tuple
-        letter, sequence = key
+def _find_participated_reactions(cur_emu, MAM):
+    """Return all identified reactions in which a given EMU participates within the Metabolite Adjacency Matrix (MAM)."""
+    # Extract reactions for the current EMU's compound
+    participated_reactions = MAM.xs(cur_emu.compound, level=0, axis=1).map(
+        lambda x: x if isinstance(x, list) and len(x) > 0 else []
+    )
 
-        # Check for matchable parts and keep characters that are found in the matchable part
-        matched_sequence = "".join([char for char in sequence if char in match])
+    all_participated_reactions = set(
+        item
+        for sublist in participated_reactions.values.flatten()
+        for item in sublist
+    )
+    return all_participated_reactions
 
-        # Construct a new tuple with the matched parts
-        new_key = (letter, matched_sequence)
-        new_keys.append(new_key)
 
-    return new_keys
+def _atom_mapping_to_reaction(
+    emu: EMU, reaction: Reaction, reverse: bool = False
+) -> list:
+    """Return an EMU Reaction based on an EMU and reaction information."""
+    try:
+        atom_transitions = reaction.stoichiometry_input[emu.compound].keys()
+    except:
+        raise ValueError(
+            f"Cannot find the EMU compound in the corresponding reaction."
+        )
+
+    emu_reactions = []
+    # Use emu to find matching atoms in given compounds.
+    # TODO: What if the emu matches two same compounds in reaction
+    for transition in atom_transitions:
+        adjusted_indices = [i - 1 for i in emu.atom_number]
+        try:
+            matched_atoms = "".join(transition[i] for i in adjusted_indices)
+        except:
+            raise ValueError(
+                f"Cannot find atoms in compound {emu.compound} with indices {emu.atom_number_input}"
+            )
+
+        # Extracting the stoichiometry for the specific EMU
+        emu_stoichiometry = {}
+        emu_reactants = set()
+        for cpd, stoich in reaction.stoichiometry_input.items():
+            new_stoich = {}
+            for pattern, coeff in stoich.items():
+                if cpd == emu.compound:  # Add the original EMU
+                    new_stoich[emu.atom_number_input] = (
+                        -coeff if reverse else coeff
+                    )
+                    emu_stoichiometry[cpd] = new_stoich
+
+                elif (not reverse and coeff < 0) or (
+                    reverse and reaction.reversible and coeff > 0
+                ):
+                    # For matched reactants or products in reverse reaction
+                    reactant_matched_atom_number = _find_matchable_atoms(
+                        pattern, matched_atoms
+                    )
+                    if len(reactant_matched_atom_number) != 0:
+                        emu_id = f"{cpd}_{reactant_matched_atom_number}"
+                        emu_reactants.add(
+                            EMU(
+                                id=emu_id,
+                                compound=cpd,
+                                atom_number_input=reactant_matched_atom_number,
+                            )
+                        )
+                        emu_stoichiometry.setdefault(cpd, {})[
+                            reactant_matched_atom_number
+                        ] = (-coeff if reverse else coeff)
+
+        emu_reactions.append(
+            EMUReaction(
+                reaction_id=reaction.id, emu_stoichiometry=emu_stoichiometry
+            )
+        )
+
+    return emu_reactions, set(emu_reactants)
+
+
+def _find_matchable_atoms(pattern: str, matched_atoms: str):
+    """Return matchable atoms between a pattern and matched_atoms, returning the positions as a string."""
+    matched_pattern = [
+        str(pattern.index(char) + 1)
+        for char in matched_atoms
+        if char in pattern
+    ]
+    return "".join(sorted(matched_pattern))
 
 
 def determine_emus(reaction: Reaction) -> list:
