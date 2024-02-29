@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "cmfa"
@@ -8,7 +8,7 @@ authors = [
     {name = "Teddy Groves and Te Chen", email = "tedgro@biosustain.dtu.dk"},
 ]
 version = "0.0.1"
-description = "Compositional Metabolic Flux Analysis"
+description = "Compositional regression models of isotope labelling experiments"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -22,7 +22,9 @@ dependencies = [
     "scipy",
     "scikit-learn",
     "toml",
+    "composition-stats>=2.0.0",
 ]
+license = {text = "MIT"}
 [project.optional-dependencies]
 development = [
     "black",
@@ -98,3 +100,6 @@ select = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.pdm]
+distribution = true
