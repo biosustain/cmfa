@@ -80,7 +80,8 @@ class EMUReaction(BaseModel):
     """
 
     reaction_id: str
-    emu_stoichiometry: dict[str, dict[str, float]]
+    # emu_stoichiometry: dict[str, dict[str, float]]
+    emu_stoichiometry: dict[str, float]
 
     def __repr__(self):
         """Return a self-description of the EMU reaction."""
@@ -94,14 +95,32 @@ class EMUReaction(BaseModel):
     def check_emu_balance(self):
         """Check if the atoms are balanced in the EMU reaction."""
         lhs_atoms, rhs_atoms = 0, 0
-        for compound, transitions in self.emu_stoichiometry.items():
-            for atom, coeff in transitions.items():
-                if coeff < 0:  # Reactant
-                    lhs_atoms += len(atom) * abs(coeff)
-                else:  # Product
-                    rhs_atoms += len(atom) * abs(coeff)
+        for emu_id, coeff in self.emu_stoichiometry.items():
+            # Extract atom pattern from EMU ID (assuming it follows 'compound_atoms' format)
+            atom_pattern = emu_id.split("_")[-1]
+            if coeff < 0:  # Reactant
+                lhs_atoms += len(atom_pattern) * abs(coeff)
+            else:  # Product
+                rhs_atoms += len(atom_pattern) * abs(coeff)
+
         if lhs_atoms != rhs_atoms:
             raise ValueError(
-                f"Unbalanced atoms in the EMU reaction {self.id}: {lhs_atoms} != {rhs_atoms}"
+                f"Unbalanced atoms in the EMU reaction: {lhs_atoms} != {rhs_atoms}"
             )
         return self
+
+    @computed_field
+    @property
+    def reactants(self) -> list:
+        """Return the list of reactants in the EMU reaction."""
+        return [
+            emu for emu, stoich in self.emu_stoichiometry.items() if stoich < 0
+        ]
+
+    @computed_field
+    @property
+    def products(self) -> list:
+        """Return the list of products in the EMU reaction."""
+        return [
+            emu for emu, stoich in self.emu_stoichiometry.items() if stoich > 0
+        ]

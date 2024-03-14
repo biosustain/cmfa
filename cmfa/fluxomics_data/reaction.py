@@ -52,6 +52,7 @@ class Reaction(BaseModel):
     name: Optional[str] = None
     reversible: bool = True
     stoichiometry_input: dict[str, dict[str, float]]
+    flux: Optional[float] = None
 
     @property
     def stoichiometry(self) -> ReactionStoichiometry:

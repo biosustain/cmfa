@@ -22,11 +22,12 @@ from cmfa.fluxomics_data.reaction_network import ReactionNetwork
 def decompose_network(
     target_EMU: EMU, reaction_network: ReactionNetwork
 ) -> pd.DataFrame:
-    """Return a EMU map based on the target compound from the reaction network."""
+    """Return a EMU map with a list of EMUs based on the target compound from the reaction network."""
     MAM = reaction_network.reaction_adjacency_matrix()
     queue = deque([target_EMU])
     visited = set()
     emu_maps = {}
+    emu_cpd_list = {}
 
     while queue:
         # Keep poping new EMU added from previous round.
@@ -39,14 +40,16 @@ def decompose_network(
         # Add new EMU map if the EMU size is not added
         emu_size = cur_emu.size
         if emu_size not in emu_maps:
-            emu_maps[emu_size] = {}
+            emu_maps[emu_size] = []
+            emu_cpd_list[emu_size] = []
 
         # Find the reaction that is participated in the current emu
         participated_reactions = _find_participated_reactions(cur_emu, MAM)
-        # print(participated_reactions)
         new_map = []
+        emus = []
         for r in participated_reactions:
             # Handle forward and reverse case
+            #
             if r.endswith("_rev"):
                 new_emu_reactions, new_emus = _atom_mapping_to_reaction(
                     cur_emu,
@@ -59,20 +62,38 @@ def decompose_network(
                     reaction_network.find_reaction_by_id(r),
                     reverse=False,
                 )
-            print(new_emu_reactions)
+            # print(new_emu_reactions, new_emus)
             new_map.append(new_emu_reactions)
+            emus.append(new_emus)
             # TODO: Find equivalent EMUs
             for e in new_emus:
                 if e not in visited and e not in queue:
                     queue.append(e)
+                if e not in emu_cpd_list[emu_size]:
+                    emu_cpd_list[emu_size] += [e]
 
-        emu_maps[emu_size].setdefault(cur_emu, []).append(new_map)
+        if len(new_map) > 0:
+            # emu_maps[emu_size].setdefault(cur_emu, []).append(new_map)
+            for i in new_map:
+                emu_maps[emu_size] += i
 
-    return emu_maps
+    return emu_maps, emu_cpd_list
 
 
 def _find_participated_reactions(cur_emu, MAM):
-    """Return all identified reactions in which a given EMU participates within the Metabolite Adjacency Matrix (MAM)."""
+    """
+    Return the reactions in which a given EMU participates within the Metabolite Adjacency Matrix (MAM).
+
+    Parameters
+    ----------
+    MAM: DataFrame representing the Metabolite Adjacency Matrix with multi-index columns.
+    cur_emu: The current EMU object, expected to have at least a 'compound' attribute.
+
+    Returns
+    -------
+    A DataFrame filtered to show only the reactions (columns) in which the current EMU's compound participates.
+      The cells are boolean, indicating whether the reaction is non-empty (True) or not (False).
+    """
     # Extract reactions for the current EMU's compound
     participated_reactions = MAM.xs(cur_emu.compound, level=0, axis=1).map(
         lambda x: x if isinstance(x, list) and len(x) > 0 else []
@@ -89,12 +110,12 @@ def _find_participated_reactions(cur_emu, MAM):
 def _atom_mapping_to_reaction(
     emu: EMU, reaction: Reaction, reverse: bool = False
 ) -> list:
-    """Return an EMU Reaction based on an EMU and reaction information."""
+    """Given an EMU and reaction information, returns an EMUReaction object."""
     try:
         atom_transitions = reaction.stoichiometry_input[emu.compound].keys()
     except:
         raise ValueError(
-            f"Cannot find the EMU compound in the corresponding reaction."
+            f"Cannot find the EMU compound in the corresponding reaction"
         )
 
     emu_reactions = []
@@ -111,15 +132,14 @@ def _atom_mapping_to_reaction(
 
         # Extracting the stoichiometry for the specific EMU
         emu_stoichiometry = {}
-        emu_reactants = set()
+        emu_reactants = {emu}
         for cpd, stoich in reaction.stoichiometry_input.items():
-            new_stoich = {}
+            # new_stoich = {}
             for pattern, coeff in stoich.items():
                 if cpd == emu.compound:  # Add the original EMU
-                    new_stoich[emu.atom_number_input] = (
-                        -coeff if reverse else coeff
-                    )
-                    emu_stoichiometry[cpd] = new_stoich
+                    # new_stoich[emu.atom_number_input] = -coeff if reverse else coeff
+                    # emu_stoichiometry[cpd] = new_stoich
+                    emu_stoichiometry[emu.id] = -coeff if reverse else coeff
 
                 elif (not reverse and coeff < 0) or (
                     reverse and reaction.reversible and coeff > 0
@@ -137,9 +157,8 @@ def _atom_mapping_to_reaction(
                                 atom_number_input=reactant_matched_atom_number,
                             )
                         )
-                        emu_stoichiometry.setdefault(cpd, {})[
-                            reactant_matched_atom_number
-                        ] = (-coeff if reverse else coeff)
+                        # emu_stoichiometry.setdefault(cpd, {})[reactant_matched_atom_number] = -coeff if reverse else coeff
+                        emu_stoichiometry[emu_id] = -coeff if reverse else coeff
 
         emu_reactions.append(
             EMUReaction(
@@ -160,40 +179,105 @@ def _find_matchable_atoms(pattern: str, matched_atoms: str):
     return "".join(sorted(matched_pattern))
 
 
-def determine_emus(reaction: Reaction) -> list:
+def create_emu_stoichiometry_matrix(emu_network, emu_size):
     """
-    Determine the EMUs in a given reaction.
+    Return a stoichiometry matrix for a specified EMU size from a given EMU network.
 
     Parameters
     ----------
-    reaction : Reaction
-        The reaction to analyze.
+    emu_network : dict
+        A dictionary representing the EMU network where keys are EMU sizes and values are lists of reaction dictionaries.
+    emu_size : int
+        The specific size of EMU for which the stoichiometry matrix is to be created.
 
     Returns
     -------
-    List
-        A list of EMUs involved in the reaction.
+    pd.DataFrame
+        A pandas DataFrame representing the stoichiometry matrix, where rows and columns are indexed by reactants and products.
     """
-    return []
+    # Create matrix indices
+    reactants = set()
+    products = set()
+
+    for reaction in emu_network[emu_size]:
+        # Directly extend the sets without checking the length
+        reactants.update([" * ".join(reaction.reactants)])
+        products.update([" * ".join(reaction.products)])
+
+    # Combine reactants and products into a single tuple for output
+    indices = tuple(reactants.union(products))
+
+    # Initialize the DataFrame with indices for both rows and columns
+    matrix = pd.DataFrame(index=indices, columns=indices, data=[])
+    # Populate the matrix
+    for reaction in emu_network[emu_size]:
+        row_key, col_key = None, None  # Initialize keys
+
+        for emu_id, stoich in reaction.emu_stoichiometry.items():
+            if stoich < 0:  # Reactant
+                for idx in indices:
+                    # Find the matching reactant row
+                    if emu_id in idx.split(" * "):
+                        row_key = idx
+
+            elif stoich > 0:  # Product
+                for idx in indices:
+                    # Find the matching product column
+                    if emu_id in idx.split(" * "):
+                        col_key = idx
+
+            # Update the matrix cell with reaction ID and stoichiometry
+            if row_key and col_key:
+                cell_value = [stoich, reaction.reaction_id]
+                matrix.at[row_key, col_key] = cell_value
+
+    return matrix
 
 
-def create_emu_reaction(reaction: Reaction, emu) -> EMUReaction:
+def process_and_split_matrix(matrix):
     """
-    Create an EMUReaction based on a reaction and an EMU.
+    Return A and B matrices according to the EMU algorithm.
 
     Parameters
     ----------
-    reaction : Reaction
-        The reaction from which the EMUReaction is derived.
-    emu
-        The EMU for which the EMUReaction is created.
+    matrix : pd.DataFrame
+        The matrix to be processed and split, typically representing stoichiometries or interactions within an EMU network.
 
     Returns
     -------
-    EMUReaction
-        The created EMUReaction.
+    tuple of pd.DataFrame
+        A tuple containing two pandas DataFrames after splitting and processing the input matrix. The first matrix's diagonal is adjusted to include non-NaN values from corresponding rows.
     """
-    return EMUReaction(...)
+    # Remove columns with all NaN values
+    cleaned_matrix = matrix.dropna(axis=1, how="all")
+
+    # Identify the row indices to split the matrix
+    split_indices = [
+        idx for idx in matrix.index if idx not in cleaned_matrix.columns
+    ]
+
+    # Split the matrix into two based on the identified indices
+    matrix_A = (cleaned_matrix.loc[~cleaned_matrix.index.isin(split_indices)]).T
+    matrix_B = (cleaned_matrix.loc[cleaned_matrix.index.isin(split_indices)]).T
+
+    # Adjust the diagonal of the first matrix
+    for i in range(len(matrix_A)):
+        non_nan_values = (
+            matrix_A.iloc[i].dropna().tolist()
+            + matrix_B.iloc[i].dropna().tolist()
+        )
+        updated_values = []
+
+        for item in non_nan_values:
+            # Copy the list to avoid modifying the original matrices
+            item_copy = item.copy()
+            item_copy[0] = -item_copy[0]
+            updated_values.append(item_copy)
+
+        # Assign the updated list to the diagonal element
+        matrix_A.iat[i, i] = updated_values
+
+    return matrix_A, matrix_B
 
 
 def emu_simulate(df: FluxomicsDataset):
