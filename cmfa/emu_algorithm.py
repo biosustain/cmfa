@@ -12,6 +12,7 @@ For the original paper see here:
 from collections import deque
 
 import pandas as pd
+from sympy import Mul, Symbol
 
 from cmfa.fluxomics_data.emu import EMU, EMUReaction
 from cmfa.fluxomics_data.fluxomics_dataset import FluxomicsDataset
@@ -228,7 +229,7 @@ def create_emu_stoichiometry_matrix(emu_network, emu_size):
 
             # Update the matrix cell with reaction ID and stoichiometry
             if row_key and col_key:
-                cell_value = [stoich, reaction.reaction_id]
+                cell_value = Mul(stoich, reaction.flux_symbol)
                 matrix.at[row_key, col_key] = cell_value
 
     return matrix
@@ -266,13 +267,10 @@ def process_and_split_matrix(matrix):
             matrix_A.iloc[i].dropna().tolist()
             + matrix_B.iloc[i].dropna().tolist()
         )
-        updated_values = []
-
+        updated_values = 0
         for item in non_nan_values:
             # Copy the list to avoid modifying the original matrices
-            item_copy = item.copy()
-            item_copy[0] = -item_copy[0]
-            updated_values.append(item_copy)
+            updated_values += -1 * item.copy()
 
         # Assign the updated list to the diagonal element
         matrix_A.iat[i, i] = updated_values

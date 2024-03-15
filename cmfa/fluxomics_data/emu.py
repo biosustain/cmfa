@@ -7,6 +7,7 @@ from pydantic import (
     computed_field,
     model_validator,
 )
+from sympy import Symbol
 
 
 class EMU(BaseModel):
@@ -108,6 +109,11 @@ class EMUReaction(BaseModel):
                 f"Unbalanced atoms in the EMU reaction: {lhs_atoms} != {rhs_atoms}"
             )
         return self
+
+    @property
+    def flux_symbol(self) -> Symbol:
+        """Returns the reaction ID as a sympy symbol."""
+        return Symbol(self.reaction_id)
 
     @computed_field
     @property
