@@ -1,3 +1,4 @@
+.pdm-python
 .venv
 # Keep non-raw data out of version control by default
 data/*/*
