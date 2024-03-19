@@ -47,16 +47,41 @@ $M_1$ with atomic mass 181.15 g/mol. Mass isotopomers are important because
 measurements can often distinguish between mass isotopomers, but not between
 isotopomers with the same atomic mass.
 
-## 13C labelling experiments
+## Labelling experiments
 
-## 13C MFA
+In a labelling experiment, an organism is fed on feedstock with a known
+isotopomer distribution. Depending on the prevailing metabolic fluxes,
+the labelled and unlabelled isotopomers will propagate differently through
+the organism. In particular, the organism will sometimes reach a metabolic
+and isotopic steady state, so that neither the concentrations of internal
+metabolites nor the distributions of each metabolite's isotopomers change
+over time. In this work we consider labelling experiments where the relative
+concentrations of mass iosopomers of some compounds in a metabolic network are
+measured at metabolic and isotopic steady state.
 
-13C MFA considers a known metabolic network consisting of $M$ compounds and
-$N$ reactions with stoichiometric coefficients $S\in\mathbb{R}^{M\times N}$
-representing the amount of each compound consumed and produced by each reaction,
-plus an atom transition map for each reaction. The atom transition map for a
-reaction specifies in what order the potentially-labelled atoms occur in each of
-the reaction's substrates and products.
+The relative mass isotopomer distribution for a compound with $k$ mass
+isotopomers is a vector $v\in\Delta^k$, where $\Delta^k$ is the $k$-simplex. A
+measurement of this quantity is another simplex vector $y\in\Delta^k$.
+
+For example, XXX.
+
+## 13C Metabolic Flux Analysis
+
+13C metabolic flux analysis considers a known metabolic network consisting of
+$M$ compounds and $N$ reactions with stoichiometric coefficients $S\in\mathbb{R}
+^{M\times N}$ representing the amount of each compound consumed and produced
+by each reaction, plus an atom transition map for each reaction.
+
+The atom transition map for a reaction specifies in what order the
+potentially-labelled atoms occur in each of the reaction's products, compared
+with their order among the reaction's substrates. For example, consider the
+reaction $A + B \rightarrow C + 2D$. An atom transition map for this reaction
+could have the form $A_{abcd} + B_{ef} \rightarrow C + D_{bdc} + D_{efa}$,
+indicating that the reaction produces a molecule of compound $C$ with no
+labelled atoms and two molecules of compound $D$, one of which jumbles the order
+of the last three labellable atoms of compound $A$, while the other preserves
+the order of compound $B$'s labellable atoms and adds compound $A$'s first atom
+on the end.
 
 The remaining input for 13C MFA is as follows:
 
@@ -68,12 +93,10 @@ The remaining input for 13C MFA is as follows:
 measurement error.
 
 The task of inferring the label pattern corresponding to a known flux assignment
-is known as the "forward problem". [REFERENCE] shows how, assuming that the
-network is in a metabolic and isotopic steady state, so that neither the
-concentrations of the compounds nor the distributions of isotopomers are
-changing, it is possible to calculate the isotopomer distribution for each
-compound given a known flux; in this way it is possible to calculate the
-labelling pattern $r(v)$ corresponding to any flux assignment $v$.
+is known as the "forward problem". [REFERENCE] shows how, given the input
+information described above, assumptions of metabolic and isotopic steady state
+and a known flux for each reaction, it is possible to calculate the isotopomer
+distribution for each compound in a network.
 
 Unfortunately, solving the forward problem in terms of isotopomers is of
 limited use for real applications due to the prohibitively large number
@@ -83,17 +106,20 @@ the forward problem [REFERNECES]. Below [INTERNAL REFERENCE] we consider
 in detail the "elementary metabolite unit" representation introduced in
 @antoniewiczElementaryMetaboliteUnits2007.
 
-The inverse problem of inferring steady state fluxes from measured isotopomer
-distributions can be solved using a statistical model that links these
-measurements with latent parameters representing flux configurations. In
-general, such a model specifies the probability $p(r_{obs}\mid r(v))$ of
-observing labelling pattern $r_{obs}$ given a true flux assignment $v$ and true
-labelling pattern $r(v)$. For example, assuming a linear model, or equivalently
-optimising $v$ by least squares, yields the following relationship:
+The inverse problem of inferring steady state fluxes from measured mass
+isotopomer distributions can be solved using a statistical model that links
+these measurements with latent parameters representing flux configurations.
+In general, such a model specifies the probability density $p(y\mid v)$ of the
+measurement $y$ given a true flux assignment $v$. Typically a linear model is
+used, so that the probability density is given by
 
 $$
-r_{obs} \sim N(r(v), \Sigma)
+p(y\mid v) = N(y\mid r(v), \Sigma)
 $$
+
+where $r(v)$ is the mass isotopomer distribution corresponding to $v$,
+calculated by solving the forward problem, and $\Sigma$ is a covariance matrix
+representing the error in the measurement apparatus.
 
 ## The Elementary Metabolite Unit representation
 
@@ -116,9 +142,10 @@ Dirichlet distributions [@aitchisonjStatisticalAnalysisCompositional, Ch. 3]
 among others.
 
 Compositional regression methods are appropriate for 13C MFA because mass
-isotopomer distribution vectors are compositional. We therefore considered it
-likely that the standard practice of applying non-compositional statistical
-analysis to such data would produce incorrect results.
+isotopomer distributions and their measurements are subject to unit-sum
+constraints. We therefore considered it likely that the standard practice of
+applying non-compositional statistical analysis to such data would produce
+incorrect results.
 
 ## Existing solutions
 

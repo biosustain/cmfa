@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.551">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Teddy Groves">
+<meta name="author" content="Te Chen">
+
+<title>CMFA</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="report_files/libs/quarto-html/quarto.js"></script>
+<script src="report_files/libs/quarto-html/popper.min.js"></script>
+<script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="report_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="report.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">CMFA</h1>
+<p class="subtitle lead">Compositional Metabolic Flux Analysis</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Authors</div>
+    <div class="quarto-title-meta-contents">
+             <p>Teddy Groves </p>
+             <p>Te Chen </p>
+          </div>
+  </div>
+
+
+
+  </div>
+
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>13C Metabolic flux analysis <span class="citation" data-cites="wiechert13CMetabolicFlux2001">(<a href="#ref-wiechert13CMetabolicFlux2001" role="doc-biblioref">Wiechert 2001</a>)</span> aims to infer the values of metabolic fluxes from the results of isotope labelling experiments using linear regression. This paper proposes a new measurement model for use in 13C MFA that takes into account compositionality and demonstrates this model’s use in the context of a new software application. We show that previous MFA approaches that do not take into account compositionality produce misleading or incomplete results in an illustrative case, whereas our method performs well.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<section id="isotopes-isotopomers-and-mass-isotopomers" class="level2">
+<h2 class="anchored" data-anchor-id="isotopes-isotopomers-and-mass-isotopomers">Isotopes, isotopomers and mass isotopomers</h2>
+<p>Isotopes are atoms whose nuclei have the same number of protons but different numbers of neutrons. Isotopes instantiate the same element and have very similar chemical properties, but have different atomic masses and physical properties. For example, Carbon has three naturally occurring isotopes: 12C, 13C and 14C, with respective atomic masses 12, 13 and 14. 14C occurs in negligible quantities, and the natural ratio of 12C to 13C is known, making carbon suitable for isotope labelling experiments where 12C is artificially replaced with 13C.</p>
+<p>Isotopomers are forms of a compound that differ only by substitution of isotopes. For example, [1-13C] glucose, [U-13C] glucose and [2-13C] glucose are isotopomers that differ only in the isotopes of the carbon atoms in positions 1 and 2. In general, for a compound with <span class="math inline">\(A\)</span> occurrences of an atom with <span class="math inline">\(I\)</span> isotopes, there are <span class="math inline">\(I^A\)</span> corresponding isotopomers. For example, glucose has six carbon atoms: assuming only 12C and 13C isotopes are present, there are <span class="math inline">\(2^6\)</span> carbon isotopomers.</p>
+<p>A mass isotopomer is an equivalence class of isotopomers that share the same atomic mass. For example, [1-13C] glucose and [2-13C] glucose each have five 12C atoms and one 13C atom and therefore belong to the glucose mass isotopomer <span class="math inline">\(M_1\)</span> with atomic mass 181.15 g/mol. Mass isotopomers are important because measurements can often distinguish between mass isotopomers, but not between isotopomers with the same atomic mass.</p>
+</section>
+<section id="labelling-experiments" class="level2">
+<h2 class="anchored" data-anchor-id="labelling-experiments">Labelling experiments</h2>
+<p>In a labelling experiment, an organism is fed on feedstock with a known isotopomer distribution. Depending on the prevailing metabolic fluxes, the labelled and unlabelled isotopomers will propagate differently through the organism. In particular, the organism will sometimes reach a metabolic and isotopic steady state, so that neither the concentrations of internal metabolites nor the distributions of each metabolite’s isotopomers change over time. In this work we consider labelling experiments where the relative concentrations of mass iosopomers of some compounds in a metabolic network are measured at metabolic and isotopic steady state.</p>
+<p>The relative mass isotopomer distribution for a compound with <span class="math inline">\(k\)</span> mass isotopomers is a vector <span class="math inline">\(v\in\Delta^k\)</span>, where <span class="math inline">\(\Delta^k\)</span> is the <span class="math inline">\(k\)</span>-simplex. A measurement of this quantity is another simplex vector <span class="math inline">\(y\in\Delta^k\)</span>.</p>
+<p>For example, XXX.</p>
+</section>
+<section id="c-metabolic-flux-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="c-metabolic-flux-analysis">13C Metabolic Flux Analysis</h2>
+<p>13C metabolic flux analysis considers a known metabolic network consisting of <span class="math inline">\(M\)</span> compounds and <span class="math inline">\(N\)</span> reactions with stoichiometric coefficients <span class="math inline">\(S\in\mathbb{R}
+^{M\times N}\)</span> representing the amount of each compound consumed and produced by each reaction, plus an atom transition map for each reaction.</p>
+<p>The atom transition map for a reaction specifies in what order the potentially-labelled atoms occur in each of the reaction’s products, compared with their order among the reaction’s substrates. For example, consider the reaction <span class="math inline">\(A + B \rightarrow C + 2D\)</span>. An atom transition map for this reaction could have the form <span class="math inline">\(A_{abcd} + B_{ef} \rightarrow C + D_{bdc} + D_{efa}\)</span>, indicating that the reaction produces a molecule of compound <span class="math inline">\(C\)</span> with no labelled atoms and two molecules of compound <span class="math inline">\(D\)</span>, one of which jumbles the order of the last three labellable atoms of compound <span class="math inline">\(A\)</span>, while the other preserves the order of compound <span class="math inline">\(B\)</span>’s labellable atoms and adds compound <span class="math inline">\(A\)</span>’s first atom on the end.</p>
+<p>The remaining input for 13C MFA is as follows:</p>
+<ul>
+<li><p>Known isotope proportions for some compounds, typically the feed.</p></li>
+<li><p>Measured fluxes for some reactions, possibly with known measurement error.</p></li>
+<li><p>Measured mass isotopomer proportions for some compounds, possibly with known measurement error.</p></li>
+</ul>
+<p>The task of inferring the label pattern corresponding to a known flux assignment is known as the “forward problem”. [REFERENCE] shows how, given the input information described above, assumptions of metabolic and isotopic steady state and a known flux for each reaction, it is possible to calculate the isotopomer distribution for each compound in a network.</p>
+<p>Unfortunately, solving the forward problem in terms of isotopomers is of limited use for real applications due to the prohibitively large number of isotopomers that need to be considered. As a result of this difficulty there has been considerable interest in more concise representations of the forward problem [REFERNECES]. Below [INTERNAL REFERENCE] we consider in detail the “elementary metabolite unit” representation introduced in <span class="citation" data-cites="antoniewiczElementaryMetaboliteUnits2007">Antoniewicz, Kelleher, and Stephanopoulos (<a href="#ref-antoniewiczElementaryMetaboliteUnits2007" role="doc-biblioref">2007</a>)</span>.</p>
+<p>The inverse problem of inferring steady state fluxes from measured mass isotopomer distributions can be solved using a statistical model that links these measurements with latent parameters representing flux configurations. In general, such a model specifies the probability density <span class="math inline">\(p(y\mid v)\)</span> of the measurement <span class="math inline">\(y\)</span> given a true flux assignment <span class="math inline">\(v\)</span>. Typically a linear model is used, so that the probability density is given by</p>
+<p><span class="math display">\[
+p(y\mid v) = N(y\mid r(v), \Sigma)
+\]</span></p>
+<p>where <span class="math inline">\(r(v)\)</span> is the mass isotopomer distribution corresponding to <span class="math inline">\(v\)</span>, calculated by solving the forward problem, and <span class="math inline">\(\Sigma\)</span> is a covariance matrix representing the error in the measurement apparatus.</p>
+</section>
+<section id="the-elementary-metabolite-unit-representation" class="level2">
+<h2 class="anchored" data-anchor-id="the-elementary-metabolite-unit-representation">The Elementary Metabolite Unit representation</h2>
+</section>
+<section id="compositional-regression" class="level2">
+<h2 class="anchored" data-anchor-id="compositional-regression">Compositional Regression</h2>
+<p>Compositional data is data that is subject to a unit-sum constraint. For example, a compositional dataset might record the amount of fat, protein and other ingredients in some blocks of butter as proportions of the total mass of each block. These proportions are constrained to sum to exactly one.</p>
+<p>It is well known that, in general, applying non-compositional data analysis methods to compositional data is dangerous because these methods can easily misinterpret constraint-induced correlations <span class="citation" data-cites="aitchisonjStatisticalAnalysisCompositional">(<a href="#ref-aitchisonjStatisticalAnalysisCompositional" role="doc-biblioref">Aitchison, n.d.</a>, Ch. 3)</span>.</p>
+<p>Compositional regression methods employ constrained measurement distributions to analyse compositional data, allowing induced correlations to be accounted for naturally. Examples of such distributions include the logistic-normal and Dirichlet distributions <span class="citation" data-cites="aitchisonjStatisticalAnalysisCompositional">(<a href="#ref-aitchisonjStatisticalAnalysisCompositional" role="doc-biblioref">Aitchison, n.d.</a>, Ch. 3)</span> among others.</p>
+<p>Compositional regression methods are appropriate for 13C MFA because mass isotopomer distributions and their measurements are subject to unit-sum constraints. We therefore considered it likely that the standard practice of applying non-compositional statistical analysis to such data would produce incorrect results.</p>
+</section>
+<section id="existing-solutions" class="level2">
+<h2 class="anchored" data-anchor-id="existing-solutions">Existing solutions</h2>
+<p>Existing implementations of 13C MFA include:</p>
+<ul>
+<li>INCA</li>
+<li>13CFLUX2</li>
+<li>Metran</li>
+<li>OpenFlux(2)</li>
+<li>FluxPyt</li>
+<li>mfapy</li>
+<li>Sysmetab</li>
+<li>iso2flux</li>
+<li>Flux-P</li>
+<li>WUFlux</li>
+<li>OpenMebius</li>
+<li>influx_s</li>
+</ul>
+<p>See <span class="citation" data-cites="daiUnderstandingMetabolismFlux2017">Dai and Locasale (<a href="#ref-daiUnderstandingMetabolismFlux2017" role="doc-biblioref">2017</a>)</span>, <span class="citation" data-cites="falcoMetabolicFluxAnalysis2022">Falco et al. (<a href="#ref-falcoMetabolicFluxAnalysis2022" role="doc-biblioref">2022</a>)</span> for reviews of available software implementing 13C MFA. We wish to note several limitations of the currently available software:</p>
+<ul>
+<li>There is no previous implementation of compositional regression analysis in the context of 13C MFA; all previous implementations apply a linear model either explicitly as in <span class="citation" data-cites="theorellBeCertainUncertainty2017">(<a href="#ref-theorellBeCertainUncertainty2017" role="doc-biblioref">Theorell et al. 2017</a>, Eq. 3)</span> or more commonly implicitly through the use of least-squares optimisation.</li>
+<li>The only software implementing Bayesian 13C MFA is proprietary.</li>
+</ul>
+</section>
+</section>
+<section id="methods" class="level1">
+<h1>Methods</h1>
+<section id="statistical-model" class="level2">
+<h2 class="anchored" data-anchor-id="statistical-model">Statistical model</h2>
+</section>
+<section id="software-implementation" class="level2">
+<h2 class="anchored" data-anchor-id="software-implementation">Software implementation</h2>
+</section>
+</section>
+<section id="results" class="level1">
+<h1>Results</h1>
+<section id="case-study-toy-model" class="level2">
+<h2 class="anchored" data-anchor-id="case-study-toy-model">Case study: toy model</h2>
+</section>
+<section id="case-study-compositional-vs-non-compositional" class="level2">
+<h2 class="anchored" data-anchor-id="case-study-compositional-vs-non-compositional">Case study: compositional vs non-compositional</h2>
+</section>
+<section id="case-study-real-data" class="level2">
+<h2 class="anchored" data-anchor-id="case-study-real-data">Case study: real data</h2>
+</section>
+</section>
+<section id="discussion" class="level1">
+<h1>Discussion</h1>
+<section id="recommendations" class="level2">
+<h2 class="anchored" data-anchor-id="recommendations">Recommendations</h2>
+</section>
+<section id="limitations" class="level2">
+<h2 class="anchored" data-anchor-id="limitations">Limitations</h2>
+</section>
+</section>
+<section id="references" class="level1 unnumbered">
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-aitchisonjStatisticalAnalysisCompositional" class="csl-entry" role="listitem">
+Aitchison, J. n.d. <em>The <span>Statistical Analysis</span> of <span>Compositional Data</span></em>. <span>Chapman and Hall Ltd</span>.
+</div>
+<div id="ref-antoniewiczElementaryMetaboliteUnits2007" class="csl-entry" role="listitem">
+Antoniewicz, Maciek R., Joanne K. Kelleher, and Gregory Stephanopoulos. 2007. <span>“Elementary <span>Metabolite Units</span> (<span>EMU</span>): A Novel Framework for Modeling Isotopic Distributions.”</span> <em>Metabolic Engineering</em> 9 (1): 68–86. <a href="https://doi.org/10.1016/j.ymben.2006.09.001">https://doi.org/10.1016/j.ymben.2006.09.001</a>.
+</div>
+<div id="ref-daiUnderstandingMetabolismFlux2017" class="csl-entry" role="listitem">
+Dai, Ziwei, and Jason W. Locasale. 2017. <span>“Understanding Metabolism with Flux Analysis: <span>From</span> Theory to Application.”</span> <em>Metabolic Engineering</em> 43 (September): 94–102. <a href="https://doi.org/10.1016/j.ymben.2016.09.005">https://doi.org/10.1016/j.ymben.2016.09.005</a>.
+</div>
+<div id="ref-falcoMetabolicFluxAnalysis2022" class="csl-entry" role="listitem">
+Falco, Bruna de, Francesco Giannino, Fabrizio Carteni, Stefano Mazzoleni, and Dong-Hyun Kim. 2022. <span>“Metabolic Flux Analysis: A Comprehensive Review on Sample Preparation, Analytical Techniques, Data Analysis, Computational Modelling, and Main Application Areas.”</span> <em>RSC Advances</em> 12 (39): 25528–48. <a href="https://doi.org/10.1039/D2RA03326G">https://doi.org/10.1039/D2RA03326G</a>.
+</div>
+<div id="ref-theorellBeCertainUncertainty2017" class="csl-entry" role="listitem">
+Theorell, Axel, Samuel Leweke, Wolfgang Wiechert, and Katharina Nöh. 2017. <span>“To Be Certain about the Uncertainty: <span>Bayesian</span> Statistics for <span>13C</span> Metabolic Flux Analysis.”</span> <em>Biotechnology and Bioengineering</em> 114 (11): 2668–84. <a href="https://doi.org/10.1002/bit.26379">https://doi.org/10.1002/bit.26379</a>.
+</div>
+<div id="ref-wiechert13CMetabolicFlux2001" class="csl-entry" role="listitem">
+Wiechert, Wolfgang. 2001. <span>“<span>13C Metabolic Flux Analysis</span>.”</span> <em>Metabolic Engineering</em> 3 (3): 195–206. <a href="https://doi.org/10.1006/mben.2001.0187">https://doi.org/10.1006/mben.2001.0187</a>.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button,
+        { trigger: "manual",
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config);
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined;
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            }
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          }
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
