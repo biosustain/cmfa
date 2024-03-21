@@ -163,20 +163,20 @@ class ReactionNetwork(BaseModel):
                                 ppat.pattern_string
                             )
                             if len(intersection) > 0:
-                                if not reaction.reversible:
-                                    adj.at[
-                                        (sub, spat.pattern_string),
-                                        (prod, ppat.pattern_string),
-                                    ].append(rid)
-                                else:
-                                    adj.at[
-                                        (sub, spat.pattern_string),
-                                        (prod, ppat.pattern_string),
-                                    ].append(f"{rid}")
-                                    adj.at[
-                                        (prod, ppat.pattern_string),
-                                        (sub, spat.pattern_string),
-                                    ].append(f"{rid}_rev")
+                                # if not reaction.reversible:
+                                adj.at[
+                                    (sub, spat.pattern_string),
+                                    (prod, ppat.pattern_string),
+                                ].append(rid)
+                            # else:
+                            #     adj.at[
+                            #         (sub, spat.pattern_string),
+                            #         (prod, ppat.pattern_string),
+                            #     ].append(f"{rid}.fwd")
+                            #     adj.at[
+                            #         (prod, ppat.pattern_string),
+                            #         (sub, spat.pattern_string),
+                            #     ].append(f"{rid}.rev")
 
         return pd.DataFrame(adj)
 

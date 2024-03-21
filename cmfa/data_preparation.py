@@ -167,7 +167,7 @@ def parse_reaction_equation(
         reversible = False
     else:
         raise ValueError(
-            "Invalid reaction equation format, direction is missing"
+            "Invalid reaction equation format, the direction is missing."
         )
 
     stoichiometry = {}
@@ -200,6 +200,28 @@ def parse_reaction_equation(
     return stoichiometry, reversible
 
 
+def reverse_stoichiometry(stoichiometry):
+    """
+    Reverse the stoichiometry for the reaction to create the reverse reaction.
+
+    Parameters
+    ----------
+    stoichiometry (dict): A dictionary containing the stoichiometry of the reaction.
+
+    Returns
+    -------
+    dict: A dictionary containing the reversed stoichiometry.
+    """
+    reversed_stoichiometry = {}
+    for compound_id, atom_transition in stoichiometry.items():
+        for pattern, coeff in atom_transition.items():
+            if compound_id not in reversed_stoichiometry:
+                reversed_stoichiometry[compound_id] = {}
+            reversed_stoichiometry[compound_id][pattern] = -1 * coeff
+    print(reverse_stoichiometry)
+    return reversed_stoichiometry
+
+
 def parse_reaction_table(
     reaction_table: pd.DataFrame,
     network_id: str,
@@ -230,6 +252,18 @@ def parse_reaction_table(
             reversible=reversible,
         )
         reactions_set.add(reaction)
+
+        # Create the reverse reaction
+        if reversible == True:
+            reversed_stoichiometry = reverse_stoichiometry(stoichiometry)
+            reaction_rev = Reaction(
+                id=f"{row['rxn_id']}_rev",
+                name=f"{row['rxn_id']}_rev",
+                stoichiometry_input=reversed_stoichiometry,
+                reversible=False,
+            )
+            reactions_set.add(reaction_rev)
+
     return ReactionNetwork(
         id=network_id,
         name=network_name,

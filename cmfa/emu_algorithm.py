@@ -1,4 +1,4 @@
-"""Functions performing Elementary Metabolite Unit calculations.
+"""Functions performing Elementary Metabolite Unit Network Decomposition.
 
 For the original paper see here:
 
@@ -12,7 +12,6 @@ For the original paper see here:
 from collections import deque
 
 import pandas as pd
-from sympy import Mul, Symbol
 
 from cmfa.fluxomics_data.emu import EMU, EMUReaction
 from cmfa.fluxomics_data.fluxomics_dataset import FluxomicsDataset
@@ -49,20 +48,11 @@ def decompose_network(
         new_map = []
         emus = []
         for r in participated_reactions:
-            # Handle forward and reverse case
-            #
-            if r.endswith("_rev"):
-                new_emu_reactions, new_emus = _atom_mapping_to_reaction(
-                    cur_emu,
-                    reaction_network.find_reaction_by_id(r[:-4]),
-                    reverse=True,
-                )
-            else:
-                new_emu_reactions, new_emus = _atom_mapping_to_reaction(
-                    cur_emu,
-                    reaction_network.find_reaction_by_id(r),
-                    reverse=False,
-                )
+            new_emu_reactions, new_emus = _atom_mapping_to_reaction(
+                cur_emu,
+                reaction_network.find_reaction_by_id(r),
+                reverse=False,
+            )
             # print(new_emu_reactions, new_emus)
             new_map.append(new_emu_reactions)
             emus.append(new_emus)
@@ -74,7 +64,6 @@ def decompose_network(
                     emu_cpd_list[emu_size] += [e]
 
         if len(new_map) > 0:
-            # emu_maps[emu_size].setdefault(cur_emu, []).append(new_map)
             for i in new_map:
                 emu_maps[emu_size] += i
 
@@ -178,114 +167,3 @@ def _find_matchable_atoms(pattern: str, matched_atoms: str):
         if char in pattern
     ]
     return "".join(sorted(matched_pattern))
-
-
-def create_emu_stoichiometry_matrix(emu_network, emu_size):
-    """
-    Return a stoichiometry matrix for a specified EMU size from a given EMU network.
-
-    Parameters
-    ----------
-    emu_network : dict
-        A dictionary representing the EMU network where keys are EMU sizes and values are lists of reaction dictionaries.
-    emu_size : int
-        The specific size of EMU for which the stoichiometry matrix is to be created.
-
-    Returns
-    -------
-    pd.DataFrame
-        A pandas DataFrame representing the stoichiometry matrix, where rows and columns are indexed by reactants and products.
-    """
-    # Create matrix indices
-    reactants = set()
-    products = set()
-
-    for reaction in emu_network[emu_size]:
-        # Directly extend the sets without checking the length
-        reactants.update([" * ".join(reaction.reactants)])
-        products.update([" * ".join(reaction.products)])
-
-    # Combine reactants and products into a single tuple for output
-    indices = tuple(reactants.union(products))
-
-    # Initialize the DataFrame with indices for both rows and columns
-    matrix = pd.DataFrame(index=indices, columns=indices, data=[])
-    # Populate the matrix
-    for reaction in emu_network[emu_size]:
-        row_key, col_key = None, None  # Initialize keys
-
-        for emu_id, stoich in reaction.emu_stoichiometry.items():
-            if stoich < 0:  # Reactant
-                for idx in indices:
-                    # Find the matching reactant row
-                    if emu_id in idx.split(" * "):
-                        row_key = idx
-
-            elif stoich > 0:  # Product
-                for idx in indices:
-                    # Find the matching product column
-                    if emu_id in idx.split(" * "):
-                        col_key = idx
-
-            # Update the matrix cell with reaction ID and stoichiometry
-            if row_key and col_key:
-                cell_value = Mul(stoich, reaction.flux_symbol)
-                matrix.at[row_key, col_key] = cell_value
-
-    return matrix
-
-
-def process_and_split_matrix(matrix):
-    """
-    Return A and B matrices according to the EMU algorithm.
-
-    Parameters
-    ----------
-    matrix : pd.DataFrame
-        The matrix to be processed and split, typically representing stoichiometries or interactions within an EMU network.
-
-    Returns
-    -------
-    tuple of pd.DataFrame
-        A tuple containing two pandas DataFrames after splitting and processing the input matrix. The first matrix's diagonal is adjusted to include non-NaN values from corresponding rows.
-    """
-    # Remove columns with all NaN values
-    cleaned_matrix = matrix.dropna(axis=1, how="all")
-
-    # Identify the row indices to split the matrix
-    split_indices = [
-        idx for idx in matrix.index if idx not in cleaned_matrix.columns
-    ]
-
-    # Split the matrix into two based on the identified indices
-    matrix_A = (cleaned_matrix.loc[~cleaned_matrix.index.isin(split_indices)]).T
-    matrix_B = (cleaned_matrix.loc[cleaned_matrix.index.isin(split_indices)]).T
-
-    # Adjust the diagonal of the first matrix
-    for i in range(len(matrix_A)):
-        non_nan_values = (
-            matrix_A.iloc[i].dropna().tolist()
-            + matrix_B.iloc[i].dropna().tolist()
-        )
-        updated_values = 0
-        for item in non_nan_values:
-            # Copy the list to avoid modifying the original matrices
-            updated_values += -1 * item.copy()
-
-        # Assign the updated list to the diagonal element
-        matrix_A.iat[i, i] = updated_values
-
-    return matrix_A, matrix_B
-
-
-def emu_simulate(df: FluxomicsDataset):
-    """Perform the second part of the EMU algorithm.
-
-    Specifically, given a set of fluxes, a list of EMU reactions, and a set of
-    known mass isotopomer distributions (i.e. tracers), find the steady state
-    mass isotopomer distribution vector for any EMU.
-
-    Questions:
-
-     - what should the return value be?
-    """

@@ -1,5 +1,6 @@
 """emu_map.py includes a class for maps that generated from EMU algorithm."""
 
+import pandas as pd
 from pydantic import (
     BaseModel,
     Field,
@@ -7,7 +8,7 @@ from pydantic import (
     computed_field,
     model_validator,
 )
-from sympy import Symbol
+from sympy import Mul, Symbol
 
 
 class EMU(BaseModel):
@@ -81,7 +82,6 @@ class EMUReaction(BaseModel):
     """
 
     reaction_id: str
-    # emu_stoichiometry: dict[str, dict[str, float]]
     emu_stoichiometry: dict[str, float]
 
     def __repr__(self):
@@ -130,3 +130,58 @@ class EMUReaction(BaseModel):
         return [
             emu for emu, stoich in self.emu_stoichiometry.items() if stoich > 0
         ]
+
+
+class EMUMap(BaseModel):
+    """
+    A class for maps that generated from EMU algorithm.
+
+    Attributes
+    ----------
+    emu_set: dict[int, [EMU]]
+        A dictionary of EMU size as key and a list of EMUs.
+    emu_map: dict[int, [EMUReaction]]
+        A dictionary of EMU size as key and a list of EMU reactions.
+    """
+
+    emu_set: dict[int, list]
+    emu_map: dict[int, list]
+
+    def create_emu_stoichiometry_matrix(self, emu_size):
+        """Return the EMU stoichiometry matrix for a given EMU size."""
+        reactants = set()
+        products = set()
+
+        for reaction in self.emu_map[emu_size]:
+            # Directly extend the sets without checking the length
+            reactants.update([" * ".join(reaction.reactants)])
+            products.update([" * ".join(reaction.products)])
+
+        # Combine reactants and products into a single tuple for output
+        indices = tuple(reactants.union(products))
+
+        # Initialize the DataFrame with indices for both rows and columns
+        matrix = pd.DataFrame(index=indices, columns=indices, data=[])
+        # Populate the matrix
+        for reaction in self.emu_map[emu_size]:
+            row_key, col_key = None, None  # Initialize keys
+
+            for emu_id, stoich in reaction.emu_stoichiometry.items():
+                if stoich < 0:  # Reactant
+                    for idx in indices:
+                        # Find the matching reactant row
+                        if emu_id in idx.split(" * "):
+                            row_key = idx
+
+                elif stoich > 0:  # Product
+                    for idx in indices:
+                        # Find the matching product column
+                        if emu_id in idx.split(" * "):
+                            col_key = idx
+
+                # Update the matrix cell with reaction ID and stoichiometry
+                if row_key and col_key:
+                    cell_value = abs(stoich) * reaction.flux_symbol
+                    matrix.at[row_key, col_key] = cell_value
+
+        return matrix
